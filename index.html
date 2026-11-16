@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dadbod Bootcamp</title>
+<meta name="description" content="Music trivia training for the Dadbods.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Krona+One&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5d76e; --ink:#2b1b3d; --ink-soft:#5b4c70;
+  --card:#fffaf0; --coral:#ff6f59; --teal:#6fd0c4; --butter:#ffd166;
+  --red:#b3261e; --green:#1f7a57;
+  --display:'Krona One','Arial Black','Helvetica Neue',Arial,sans-serif;
+  --body:'Barlow','Helvetica Neue',Arial,sans-serif;
+  --marker:'Permanent Marker','Comic Sans MS','Marker Felt',cursive;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0; color:var(--ink); font-family:var(--body); font-size:17px; line-height:1.45; background:var(--bg); min-height:100vh}
+/* the three stripes off a cassette label, used once at the top of every screen */
+body::before{content:""; display:block; height:14px; border-bottom:2px solid var(--ink);
+  background:linear-gradient(var(--coral) 0 4px, var(--card) 4px 8px, var(--teal) 8px 12px)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none !important}
+a{color:var(--ink)}
+:focus-visible{outline:3px solid var(--ink); outline-offset:3px}
+.deck :focus-visible{outline-color:var(--card)}
+#app{max-width:540px; margin:0 auto; padding:16px 16px 110px}
+h1,h2,h3{font-family:var(--display); font-weight:400; margin:0; line-height:1.2}
+h1{font-size:1.4rem}
+h2{font-size:1.02rem; margin:28px 0 10px}
+p{margin:0 0 10px}
+.muted{color:var(--ink-soft)}
+.small{font-size:.9rem}
+
+/* hero: cassette player, headphones, wordmark */
+.hero{display:block; width:100%; max-width:330px; margin:4px auto 0}
+.hero .reel{transform-box:fill-box; transform-origin:center; animation:spin 5s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.word{font-size:min(13vw,3.3rem); white-space:nowrap; line-height:.95; text-align:center; margin-top:12px}
+.word span{display:block; font-size:.5em; letter-spacing:.24em; padding-left:.24em; margin-top:.3em}
+.tagline{text-align:center; margin:14px 0 20px}
+.logo-mini{display:flex; align-items:center; gap:9px; font-family:var(--display); font-size:.74rem; line-height:1.25}
+.logo-mini svg{flex:none; width:44px; height:29px}
+
+/* panels */
+.card{background:var(--card); border:2px solid var(--ink); border-radius:12px; box-shadow:4px 4px 0 var(--ink); padding:16px}
+.card + .card{margin-top:16px}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  min-height:50px; padding:10px 18px; border:2px solid var(--ink); border-radius:10px;
+  background:var(--card); font-weight:700; font-size:1.02rem; text-decoration:none;
+  box-shadow:3px 3px 0 var(--ink); transition:transform .06s, box-shadow .06s;
+}
+.btn:active{transform:translate(3px,3px); box-shadow:0 0 0 var(--ink)}
+.btn.primary{background:var(--coral)}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.45; cursor:not-allowed; box-shadow:none; transform:none}
+.btn.plain{border:0; box-shadow:none; background:none; text-decoration:underline; min-height:44px; padding:6px 8px; font-weight:600}
+.row{display:flex; gap:10px; align-items:center}
+.row.wrap{flex-wrap:wrap}
+.grow{flex:1}
+
+/* name tag, drawn as a hand-labelled tape sticker */
+.tag{display:flex; align-items:center; gap:12px; border:2px solid var(--ink); border-radius:8px; padding:9px 12px 9px 30px;
+  background:linear-gradient(90deg, var(--coral) 0 10px, var(--teal) 10px 18px, #fff 18px); box-shadow:3px 3px 0 var(--ink)}
+.tag .who{font-family:var(--marker); font-size:1.5rem; line-height:1.1; word-break:break-word}
+.patch{flex:none; width:52px; height:52px; border-radius:50%; background:var(--teal); border:2px solid var(--ink); display:grid; place-items:center; font-size:1.7rem; line-height:1}
+.patch.sm{width:40px; height:40px; font-size:1.3rem}
+
+/* welcome */
+input[type=text]{width:100%; min-height:52px; padding:10px 12px; border:2px solid var(--ink); border-radius:10px; background:#fff; font-size:1.1rem}
+label.lab, div.lab{display:block; font-weight:700; margin:14px 0 6px}
+.avatars{display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
+.avatars button{background:#fff; border:2px solid var(--ink); border-radius:10px; padding:8px 4px 7px; font-size:.78rem; font-weight:600; line-height:1.15; min-height:88px}
+.avatars button b{display:block; font-size:1.8rem; line-height:1.2; font-weight:400}
+.avatars button[aria-pressed=true]{background:var(--teal); box-shadow:inset 0 0 0 2px var(--ink)}
+.rules{padding-left:20px; margin:0}
+.rules li{margin-bottom:4px}
+
+/* workout picker */
+.plans{display:grid; gap:8px}
+.plan{display:block; width:100%; text-align:left; background:#fff; border:2px solid var(--ink); border-radius:10px; padding:10px 12px}
+.plan b{display:block; font-size:1.05rem}
+.plan span{font-size:.88rem; color:var(--ink-soft)}
+.plan[aria-pressed=true]{background:var(--teal); box-shadow:inset 0 0 0 2px var(--ink)}
+.plan[aria-pressed=true] span{color:var(--ink)}
+.seg{display:flex; border:2px solid var(--ink); border-radius:10px; overflow:hidden; background:#fff}
+.seg button{flex:1; border:0; background:none; padding:10px 6px; min-height:48px; font-weight:600; border-left:2px solid var(--ink); line-height:1.15}
+.seg button:first-child{border-left:0}
+.seg button small{display:block; font-weight:500; font-size:.76rem}
+.seg button[aria-pressed=true]{background:var(--ink); color:var(--card)}
+
+/* meters */
+.meter{display:grid; grid-template-columns:118px 1fr 44px; gap:10px; align-items:center; margin:8px 0; font-size:.93rem}
+.meter .bar{height:14px; background:#fff; border:2px solid var(--ink); border-radius:7px; overflow:hidden}
+.meter .bar i{display:block; height:100%; background:var(--ink)}
+.meter .pct{text-align:right; font-weight:700; font-variant-numeric:tabular-nums}
+
+/* game */
+.gamebar{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px}
+.gamebar .count{font-family:var(--display); font-size:.86rem}
+.pips{display:flex; gap:5px; margin-bottom:12px}
+.pips i{flex:1; height:9px; border:2px solid var(--ink); border-radius:5px; background:var(--card)}
+.pips i.full{background:var(--green)} .pips i.half{background:linear-gradient(90deg, var(--green) 50%, var(--card) 50%)} .pips i.zero{background:var(--red)} .pips i.now{background:var(--ink)}
+.deck{background:var(--ink); color:var(--card); border-radius:12px; padding:14px; border:2px solid var(--ink); box-shadow:4px 4px 0 rgba(43,27,61,.35)}
+.deck canvas{display:block; width:100%; height:92px}
+.deck .status{min-height:2.9em; margin:8px 0 10px; font-size:.97rem}
+.deck .btn{border-color:var(--card); box-shadow:3px 3px 0 rgba(255,250,240,.35)}
+.deck .btn.primary{color:var(--ink)}
+.listens{display:flex; gap:6px; align-items:center; font-size:.88rem}
+.listens i{width:12px; height:12px; border-radius:50%; border:2px solid var(--card); background:var(--coral)}
+.listens i.used{background:none; opacity:.5}
+.answer{margin-top:16px}
+.q{font-weight:700; margin:14px 0 6px}
+.opts{display:grid; gap:8px}
+.opt{width:100%; text-align:left; background:#fff; border:2px solid var(--ink); border-radius:10px; padding:10px 12px; min-height:48px; font-weight:600; line-height:1.2}
+.opt[aria-pressed=true]{background:var(--teal); box-shadow:inset 0 0 0 2px var(--ink)}
+.reveal .song{font-family:var(--display); font-size:1.12rem; line-height:1.25}
+.reveal .by{font-size:1.12rem; font-weight:600; margin:4px 0 2px}
+.verdict{display:flex; gap:10px; align-items:baseline; padding:8px 0; border-top:2px solid var(--ink)}
+.verdict .mark{flex:none; width:26px; height:26px; border-radius:50%; display:grid; place-items:center; color:#fff; font-weight:700; font-size:.95rem; align-self:center}
+.verdict .mark.ok{background:var(--green)} .verdict .mark.no{background:var(--red)}
+.verdict .pts{margin-left:auto; font-weight:700; white-space:nowrap}
+.quip{font-family:var(--marker); font-size:1.12rem; line-height:1.3; margin:12px 0 16px}
+
+/* results */
+.jersey{font-family:var(--display); font-size:4.4rem; line-height:1; text-align:center}
+.jersey small{display:block; font-family:var(--body); font-size:1rem; font-weight:600; margin-top:8px}
+.badge{display:flex; gap:10px; align-items:center; padding:8px 0}
+.badge .ico{flex:none; width:40px; height:40px; border-radius:10px; background:var(--ink); display:grid; place-items:center; font-size:1.25rem}
+.badge.locked{opacity:.45}
+.recap{list-style:none; margin:0; padding:0}
+.recap li{display:grid; grid-template-columns:1fr auto; gap:4px 10px; padding:9px 0; border-top:2px solid rgba(43,27,61,.18)}
+.recap li:first-child{border-top:0}
+.recap .pts{font-weight:700; font-variant-numeric:tabular-nums}
+.recap a{font-size:.88rem}
+
+/* roster */
+.roster{list-style:none; margin:0; padding:0}
+.roster li{display:grid; grid-template-columns:26px 40px 1fr auto; gap:10px; align-items:center; padding:9px 0; border-top:2px solid rgba(43,27,61,.18)}
+.roster li:first-child{border-top:0}
+.roster .pos{font-family:var(--display); font-size:.95rem; text-align:center}
+.roster .nm{font-family:var(--marker); font-size:1.2rem; line-height:1.1; word-break:break-word}
+.roster .rk{display:block; font-size:.82rem; line-height:1.25; color:var(--ink-soft)}
+.roster .val{font-family:var(--display); font-size:1.02rem; text-align:right}
+.roster .val small{display:block; font-family:var(--body); font-size:.72rem; color:var(--ink-soft)}
+.roster li.me{background:rgba(111,208,196,.4); margin:0 -8px; padding-left:8px; padding-right:8px; border-radius:8px}
+.note{background:#fff; border:2px dashed var(--ink); border-radius:10px; padding:10px 12px; font-size:.92rem}
+
+/* scouting report */
+.scout{list-style:none; margin:0; padding:0}
+.scout li{display:grid; grid-template-columns:34px 1fr 48px; gap:8px; align-items:center; padding:7px 0; border-top:2px solid rgba(43,27,61,.18)}
+.scout li:first-child{border-top:0}
+.scout .pos{font-family:var(--display); font-size:.8rem; text-align:center}
+.scout b{display:block; line-height:1.2}
+.scout span{font-size:.88rem; color:var(--ink-soft)}
+.scout .pl{width:46px; height:46px; border-radius:50%; border:2px solid var(--ink); background:var(--coral); font-size:1rem; font-weight:700}
+.scout .pl[aria-pressed=true]{background:var(--ink); color:var(--card)}
+
+/* tab bar */
+.tabs{position:fixed; left:0; right:0; bottom:0; background:var(--card); border-top:2px solid var(--ink); display:flex; justify-content:center; padding-bottom:env(safe-area-inset-bottom)}
+.tabs div{display:flex; width:100%; max-width:540px}
+.tabs button{flex:1; border:0; background:none; min-height:60px; font-weight:700; font-size:.95rem; border-left:2px solid var(--ink)}
+.tabs button:first-child{border-left:0}
+.tabs button[aria-current=page]{background:var(--ink); color:var(--card)}
+
+@media (min-width:600px){ #app{padding-top:28px} .avatars{grid-template-columns:repeat(4,1fr)} }
+@media (prefers-reduced-motion:reduce){ .btn{transition:none} .hero .reel{animation:none} }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<nav class="tabs" id="tabs" hidden><div>
+  <button data-act="nav" data-to="home">Train</button>
+  <button data-act="nav" data-to="board">Leaderboard</button>
+  <button data-act="nav" data-to="scout">Scouting report</button>
+</div></nav>
+<audio id="audio" preload="auto" playsinline></audio>
+
+<script>
+/* =====================================================================
+   COACH SETTINGS — the only things you should need to edit
+   ===================================================================== */
+
+// 1. Shared leaderboard. Paste your Firebase Realtime Database URL between
+//    the quotes, e.g. "https://dadbod-bootcamp-default-rtdb.firebaseio.com"
+//    Leave it empty and scores stay on each person's own phone.
+const TEAM_DB_URL = "";
+
+// 2. Songs the trivia host actually played. Add one block per trivia night:
+//    { date: "2026-11-19", songs: [ ["Song title", "Artist", 2014], ... ] }
+//    They show up as their own workout and get mixed into everything else.
+const HOST_SETLISTS = [];
+
+// 3. This week's Billboard Hot 100: [title, artist, chart position].
+//    Seasonal re-entries (Halloween, Christmas) are left out on purpose.
+//    Artist format: "A / B" for co-leads, "A ft. B" for features.
+const CHART_DATE = "November 14, 2026";
+const CHART = [
+["Choosin' Texas","Ella Langley",1],["Dracula","Tame Impala / JENNIE",3],["Housewife","Tate McRae",4],
+["Boston","Stella Lefty",5],["Been By Now","Morgan Wallen",6],["Nicole Kidman","ADÉLA",7],
+["BbY WOW","Karol G / Judeline / rusowsky",8],["Hate That I Made You Love Me","Ariana Grande",9],
+["Stupid Song","Olivia Rodrigo",10],["Patient Zero","Taylor Swift",11],
+["Expectations","Olivia Rodrigo / Chappell Roan",15],["Babydoll","Dominic Fike",16],
+["I Just Might","Bruno Mars",17],["Jaded","Koe Wetzel / Ella Langley",18],
+["Lies","Zach Bryan ft. Lana Del Rey",19],["Loving Life Again","Ella Langley",20],["Be Her","Ella Langley",22],
+["Midnight Sun","Zara Larsson",23],["Risk It All","Bruno Mars",24],["Mr. Know It All","Teddy Swims",25],
+["Earrings","Malcolm Todd",26],["Last Thing You Need","Morgan Wallen",27],["Ain't In LA","ADÉLA",28],
+["Janice STFU","Drake",29],["Stop The Wedding!","Ashe",30],["Petal","Ariana Grande",31],["Animal","KATSEYE",32],
+["Rethink Some Things","Luke Combs",33],["The Cure","Olivia Rodrigo",34],["Loser","Tame Impala",36],
+["Orbiter","Noah Kahan",38],["Dead Fresh","Lil Baby",41],["My Body Isn't Ready","sombr",42],
+["So Good","Jhené Aiko ft. Kendrick Lamar",43],["WTF GOIN","Belly Gang Kushington / 21 Savage",44],
+["Take Me Back (Leave Me There)","Cody Johnson",46],["Great Expectation","Sienna Spiro",47],
+["Phone, Keys, Wallet","Lainey Wilson / John Mayer",48],["Solar Eclipse","Drake / Don Toliver",49],
+["Oh Yeah?","Steve Lacy",50],["Think As You Drunk","Riley Green",51],["Empty Words","Corey Kent",52],
+["Something To Lose","Stella Lefty / Vincent Mason",53],["Get To Drinkin'","Zach John King",54],
+["Coming Up Roses","Harry Styles",55],["Self Aware","Temper City",56],["AH HA","Cardi B",57],
+["Bloodstream","Alyssa Grace",58],["Freakin' Out","Dexter and the Moonrocks",59],
+["Cold Shoulder","Drake / Don Toliver / Yebba",60],["Nothing","Steve Lacy",61],["Quebec","Drake",62],
+["Country And She Knows It","Luke Bryan",63],["Thin Ice","Megan Thee Stallion",64],["Cowgirl","Shaboozey",65],
+["Say So","Dan + Shay",66]
+];
+
+// 4. Everything else: [title, artist, year]. The year decides which era it lands in.
+const LIBRARY = [
+/* ---- last five years (2021 onward) ---- */
+["Opalite","Taylor Swift",2025],["The Fate of Ophelia","Taylor Swift",2025],["I Knew It, I Knew You","Taylor Swift",2026],
+["Man I Need","Olivia Dean",2025],["So Easy (To Fall in Love)","Olivia Dean",2025],["Folded","Kehlani",2025],
+["Back to Friends","sombr",2025],["Undressed","sombr",2025],["End of Beginning","Djo",2022],
+["Aperture","Harry Styles",2026],["American Girls","Harry Styles",2026],["The Great Divide","Noah Kahan",2026],
+["Stateside","PinkPantheress / Zara Larsson",2025],["Swim","BTS",2026],["Drop Dead","Olivia Rodrigo",2026],
+["DTMF","Bad Bunny",2025],["Baile Inolvidable","Bad Bunny",2025],
+["I Can't Love You Anymore","Ella Langley / Morgan Wallen",2026],["Golden","HUNTR/X",2025],
+["Ordinary","Alex Warren",2025],["Daisies","Justin Bieber",2025],["Manchild","Sabrina Carpenter",2025],
+["Tears","Sabrina Carpenter",2025],["Luther","Kendrick Lamar / SZA",2024],["Not Like Us","Kendrick Lamar",2024],
+["tv off","Kendrick Lamar ft. Lefty Gunplay",2024],["Die with a Smile","Lady Gaga / Bruno Mars",2024],
+["APT.","ROSÉ / Bruno Mars",2024],["Abracadabra","Lady Gaga",2025],["A Bar Song (Tipsy)","Shaboozey",2024],
+["Lose Control","Teddy Swims",2023],["Birds of a Feather","Billie Eilish",2024],["Beautiful Things","Benson Boone",2024],
+["Mystical Magical","Benson Boone",2025],["Pink Pony Club","Chappell Roan",2020,"R"],
+["Good Luck, Babe!","Chappell Roan",2024],["Hot to Go!","Chappell Roan",2023],["Espresso","Sabrina Carpenter",2024],
+["Please Please Please","Sabrina Carpenter",2024],["Taste","Sabrina Carpenter",2024],["Feather","Sabrina Carpenter",2023],
+["Messy","Lola Young",2024],["Anxiety","Doechii",2025],["Sports Car","Tate McRae",2025],["Greedy","Tate McRae",2023],
+["Love Me Not","Ravyn Lenae",2024],["Mutt","Leon Thomas",2024],["Nokia","Drake",2025],
+["I'm the Problem","Morgan Wallen",2025],["What I Want","Morgan Wallen ft. Tate McRae",2025],
+["Last Night","Morgan Wallen",2023],["Thinkin' Bout Me","Morgan Wallen",2023],["You Proof","Morgan Wallen",2022],
+["I Had Some Help","Post Malone ft. Morgan Wallen",2024],["Sailor Song","Gigi Perez",2024],
+["That's So True","Gracie Abrams",2024],["Stargazing","Myles Smith",2024],["Too Sweet","Hozier",2024],
+["Timeless","The Weeknd / Playboi Carti",2024],["Million Dollar Baby","Tommy Richman",2024],
+["Texas Hold 'Em","Beyoncé",2024],["Lovin on Me","Jack Harlow",2023],["First Class","Jack Harlow",2022],
+["Stick Season","Noah Kahan",2022],["Fortnight","Taylor Swift ft. Post Malone",2024],
+["We Can't Be Friends (Wait for Your Love)","Ariana Grande",2024],["Saturn","SZA",2024],["Snooze","SZA",2022],
+["Kill Bill","SZA",2022],["Water","Tyla",2023],["Paint the Town Red","Doja Cat",2023],["Agora Hills","Doja Cat",2023],
+["Woman","Doja Cat",2021],["Need to Know","Doja Cat",2021],["Vegas","Doja Cat",2022],["Kiss Me More","Doja Cat ft. SZA",2021],
+["Like That","Future / Metro Boomin / Kendrick Lamar",2024],["Houdini","Dua Lipa",2023],["Dance the Night","Dua Lipa",2023],
+["Pink Skies","Zach Bryan",2024],["I Remember Everything","Zach Bryan ft. Kacey Musgraves",2023],
+["Something in the Orange","Zach Bryan",2022],["Austin","Dasha",2023],["Lunch","Billie Eilish",2024],
+["What Was I Made For?","Billie Eilish",2023],["Happier Than Ever","Billie Eilish",2021],["Flowers","Miley Cyrus",2023],
+["Anti-Hero","Taylor Swift",2022],["Karma","Taylor Swift",2022],["Is It Over Now?","Taylor Swift",2023],
+["Creepin'","Metro Boomin / The Weeknd / 21 Savage",2022],["Calm Down","Rema / Selena Gomez",2022],
+["Fast Car","Luke Combs",2023],["Vampire","Olivia Rodrigo",2023],["Good 4 U","Olivia Rodrigo",2021],
+["Drivers License","Olivia Rodrigo",2021],["Deja Vu","Olivia Rodrigo",2021],["Traitor","Olivia Rodrigo",2021],
+["Unholy","Sam Smith / Kim Petras",2022],["I'm Good (Blue)","David Guetta / Bebe Rexha",2022],
+["Boy's a Liar Pt. 2","PinkPantheress / Ice Spice",2023],["Rich Flex","Drake / 21 Savage",2022],
+["Jimmy Cooks","Drake ft. 21 Savage",2022],["Way 2 Sexy","Drake ft. Future / Young Thug",2021],
+["Cupid","FIFTY FIFTY",2023],["Padam Padam","Kylie Minogue",2023],["Ella Baila Sola","Eslabon Armado / Peso Pluma",2023],
+["Need a Favor","Jelly Roll",2023],["Lil Boo Thang","Paul Russell",2023],["Daylight","David Kushner",2023],
+["Seven","Jung Kook ft. Latto",2023],["Players","Coi Leray",2022],["Escapism.","RAYE ft. 070 Shake",2022],
+["As It Was","Harry Styles",2022],["Late Night Talking","Harry Styles",2022],
+["Stay","The Kid LAROI / Justin Bieber",2021],["Ghost","Justin Bieber",2021],
+["Peaches","Justin Bieber ft. Daniel Caesar / Giveon",2021],["Easy on Me","Adele",2021],
+["Shivers","Ed Sheeran",2021],["Bad Habits","Ed Sheeran",2021],["Big Energy","Latto",2021],
+["About Damn Time","Lizzo",2022],["Cold Heart","Elton John / Dua Lipa",2021],["Enemy","Imagine Dragons",2021],
+["abcdefu","GAYLE",2021],["Wait for U","Future ft. Drake / Tems",2022],
+["Industry Baby","Lil Nas X / Jack Harlow",2021],["Montero (Call Me by Your Name)","Lil Nas X",2021],
+["That's What I Want","Lil Nas X",2021],["Me Porto Bonito","Bad Bunny / Chencho Corleone",2022],
+["Tití Me Preguntó","Bad Bunny",2022],["I Like You (A Happier Song)","Post Malone ft. Doja Cat",2022],
+["Bad Habit","Steve Lacy",2022],["Break My Soul","Beyoncé",2022],["Cuff It","Beyoncé",2022],
+["Sunroof","Nicky Youre / dazy",2021],["I Ain't Worried","OneRepublic",2022],["Glimpse of Us","Joji",2022],
+["Lift Me Up","Rihanna",2022],["Leave the Door Open","Silk Sonic",2021],["Butter","BTS",2021],
+["My Universe","Coldplay / BTS",2021],["Astronaut in the Ocean","Masked Wolf",2021],["Beggin'","Måneskin",2021],
+["Fancy Like","Walker Hayes",2021],["Take My Breath","The Weeknd",2021],
+
+/* ---- 2010 to 2020 ---- */
+["California Gurls","Katy Perry ft. Snoop Dogg",2010],["Teenage Dream","Katy Perry",2010],["Firework","Katy Perry",2010],
+["Roar","Katy Perry",2013],["Dark Horse","Katy Perry ft. Juicy J",2013],["Dynamite","Taio Cruz",2010],
+["Love the Way You Lie","Eminem ft. Rihanna",2010],["Just the Way You Are","Bruno Mars",2010],["Grenade","Bruno Mars",2010],
+["Locked Out of Heaven","Bruno Mars",2012],["24K Magic","Bruno Mars",2016],["That's What I Like","Bruno Mars",2016],
+["Baby","Justin Bieber ft. Ludacris",2010],["Sorry","Justin Bieber",2015],["Love Yourself","Justin Bieber",2015],
+["What Do You Mean?","Justin Bieber",2015],["Airplanes","B.o.B ft. Hayley Williams",2010],["Forget You","CeeLo Green",2010],
+["Sure Thing","Miguel",2010],["Rolling in the Deep","Adele",2010],["Someone Like You","Adele",2011],["Hello","Adele",2015],
+["Party Rock Anthem","LMFAO",2011],["Moves Like Jagger","Maroon 5 ft. Christina Aguilera",2011],["Sugar","Maroon 5",2014],
+["Girls Like You","Maroon 5 ft. Cardi B",2018],["Super Bass","Nicki Minaj",2011],["Starships","Nicki Minaj",2012],
+["We Found Love","Rihanna ft. Calvin Harris",2011],["Pumped Up Kicks","Foster the People",2010],
+["Give Me Everything","Pitbull ft. Ne-Yo",2011],["Timber","Pitbull ft. Kesha",2013],
+["Somebody That I Used to Know","Gotye ft. Kimbra",2011],["Call Me Maybe","Carly Rae Jepsen",2011],
+["We Are Young","fun. ft. Janelle Monáe",2011],["Some Nights","fun.",2012],["Gangnam Style","PSY",2012],
+["Ho Hey","The Lumineers",2012],["Thrift Shop","Macklemore / Ryan Lewis",2012],
+["We Are Never Ever Getting Back Together","Taylor Swift",2012],["I Knew You Were Trouble","Taylor Swift",2012],
+["Shake It Off","Taylor Swift",2014],["Blank Space","Taylor Swift",2014],["Cruel Summer","Taylor Swift",2019],
+["cardigan","Taylor Swift",2020],["Radioactive","Imagine Dragons",2012],["Believer","Imagine Dragons",2017],
+["Thunder","Imagine Dragons",2017],["Blurred Lines","Robin Thicke ft. T.I. / Pharrell Williams",2013],
+["Get Lucky","Daft Punk ft. Pharrell Williams",2013],["Happy","Pharrell Williams",2013],["Royals","Lorde",2013],
+["Wrecking Ball","Miley Cyrus",2013],["Counting Stars","OneRepublic",2013],["Wake Me Up","Avicii",2013],
+["All of Me","John Legend",2013],["Let It Go","Idina Menzel",2013],["Take Me to Church","Hozier",2013],
+["Rude","MAGIC!",2013],["Fancy","Iggy Azalea ft. Charli XCX",2014],["All About That Bass","Meghan Trainor",2014],
+["Uptown Funk","Mark Ronson ft. Bruno Mars",2014],["Thinking Out Loud","Ed Sheeran",2014],["Shape of You","Ed Sheeran",2017],
+["Perfect","Ed Sheeran",2017],["Stay with Me","Sam Smith",2014],["Chandelier","Sia",2014],["Cheap Thrills","Sia",2016],
+["Problem","Ariana Grande ft. Iggy Azalea",2014],["thank u, next","Ariana Grande",2018],["7 rings","Ariana Grande",2019],
+["positions","Ariana Grande",2020],["Shut Up and Dance","WALK THE MOON",2014],["Trap Queen","Fetty Wap",2014],
+["Cheerleader","OMI",2014],["Can't Feel My Face","The Weeknd",2015],["The Hills","The Weeknd",2015],
+["Starboy","The Weeknd ft. Daft Punk",2016],["Die for You","The Weeknd",2016],["Blinding Lights","The Weeknd",2019],
+["Save Your Tears","The Weeknd",2020],["Hotline Bling","Drake",2015],["One Dance","Drake ft. Wizkid / Kyla",2016],
+["God's Plan","Drake",2018],["In My Feelings","Drake",2018],["See You Again","Wiz Khalifa ft. Charlie Puth",2015],
+["Stressed Out","Twenty One Pilots",2015],["7 Years","Lukas Graham",2015],["Tennessee Whiskey","Chris Stapleton",2015],
+["Closer","The Chainsmokers ft. Halsey",2016],["Without Me","Halsey",2018],
+["Can't Stop the Feeling!","Justin Timberlake",2016],["Black Beatles","Rae Sremmurd ft. Gucci Mane",2016],
+["Despacito","Luis Fonsi / Daddy Yankee",2017],["HUMBLE.","Kendrick Lamar",2017],["Bodak Yellow","Cardi B",2017],
+["WAP","Cardi B ft. Megan Thee Stallion",2020],["Havana","Camila Cabello ft. Young Thug",2017],
+["Rockstar","Post Malone ft. 21 Savage",2017],["Congratulations","Post Malone ft. Quavo",2016],
+["Sunflower","Post Malone / Swae Lee",2018],["Circles","Post Malone",2019],["New Rules","Dua Lipa",2017],
+["Don't Start Now","Dua Lipa",2019],["Levitating","Dua Lipa",2020],["Sicko Mode","Travis Scott",2018],
+["Shallow","Lady Gaga / Bradley Cooper",2018],["Rain on Me","Lady Gaga / Ariana Grande",2020],
+["High Hopes","Panic! at the Disco",2018],["Old Town Road","Lil Nas X ft. Billy Ray Cyrus",2019],
+["bad guy","Billie Eilish",2019],["Truth Hurts","Lizzo",2019],["Señorita","Shawn Mendes / Camila Cabello",2019],
+["Someone You Loved","Lewis Capaldi",2018],["Dance Monkey","Tones and I",2019],["Sucker","Jonas Brothers",2019],
+["Watermelon Sugar","Harry Styles",2019],["Adore You","Harry Styles",2019],["The Box","Roddy Ricch",2019],
+["Savage","Megan Thee Stallion",2020],["Say So","Doja Cat",2019],["Heat Waves","Glass Animals",2020],
+["Mood","24kGoldn ft. iann dior",2020],["Dynamite","BTS",2020],
+
+/* ---- 2000s ---- */
+["Bye Bye Bye","*NSYNC",2000],["Oops!... I Did It Again","Britney Spears",2000],["Toxic","Britney Spears",2003],
+["Ms. Jackson","OutKast",2000],["Hey Ya!","OutKast",2003],["The Real Slim Shady","Eminem",2000],
+["Lose Yourself","Eminem",2002],["Without Me","Eminem",2002],["It Wasn't Me","Shaggy ft. Rikrok",2000],
+["Yellow","Coldplay",2000],["Clocks","Coldplay",2002],["Viva la Vida","Coldplay",2008],["Kryptonite","3 Doors Down",2000],
+["Beautiful Day","U2",2000],["Who Let the Dogs Out","Baha Men",2000],["Fallin'","Alicia Keys",2001],
+["No One","Alicia Keys",2007],["Get the Party Started","P!nk",2001],["Drops of Jupiter","Train",2001],
+["Hey, Soul Sister","Train",2009],["How You Remind Me","Nickelback",2001],["Family Affair","Mary J. Blige",2001],
+["The Middle","Jimmy Eat World",2001],["Murder on the Dancefloor","Sophie Ellis-Bextor",2001],
+["Hot in Herre","Nelly",2002],["Dilemma","Nelly ft. Kelly Rowland",2002],["A Thousand Miles","Vanessa Carlton",2002],
+["Complicated","Avril Lavigne",2002],["Crazy in Love","Beyoncé ft. Jay-Z",2003],["Irreplaceable","Beyoncé",2006],
+["Single Ladies (Put a Ring on It)","Beyoncé",2008],["In da Club","50 Cent",2003],
+["Seven Nation Army","The White Stripes",2003],["Mr. Brightside","The Killers",2003],
+["Stacy's Mom","Fountains of Wayne",2003],["Bring Me to Life","Evanescence",2003],
+["Yeah!","Usher ft. Lil Jon / Ludacris",2004],["Since U Been Gone","Kelly Clarkson",2004],
+["Drop It Like It's Hot","Snoop Dogg ft. Pharrell Williams",2004],["This Love","Maroon 5",2004],
+["American Idiot","Green Day",2004],["Unwritten","Natasha Bedingfield",2004],["Hollaback Girl","Gwen Stefani",2005],
+["Gold Digger","Kanye West ft. Jamie Foxx",2005],["Stronger","Kanye West",2007],["We Belong Together","Mariah Carey",2005],
+["Feel Good Inc.","Gorillaz",2005],["Sugar, We're Goin Down","Fall Out Boy",2005],["Before He Cheats","Carrie Underwood",2005],
+["Temperature","Sean Paul",2005],["Hips Don't Lie","Shakira ft. Wyclef Jean",2006],["SexyBack","Justin Timberlake",2006],
+["Crazy","Gnarls Barkley",2006],["Promiscuous","Nelly Furtado ft. Timbaland",2006],["Chasing Cars","Snow Patrol",2006],
+["Hey There Delilah","Plain White T's",2006],["Umbrella","Rihanna ft. Jay-Z",2007],["Don't Stop the Music","Rihanna",2007],
+["Disturbia","Rihanna",2008],["Crank That (Soulja Boy)","Soulja Boy",2007],["Apologize","Timbaland ft. OneRepublic",2007],
+["Low","Flo Rida ft. T-Pain",2007],["Bleeding Love","Leona Lewis",2007],["Paper Planes","M.I.A.",2007],
+["I Kissed a Girl","Katy Perry",2008],["Poker Face","Lady Gaga",2008],["Just Dance","Lady Gaga ft. Colby O'Donis",2008],
+["Bad Romance","Lady Gaga",2009],["Love Story","Taylor Swift",2008],["You Belong with Me","Taylor Swift",2008],
+["Use Somebody","Kings of Leon",2008],["Lollipop","Lil Wayne",2008],["I Gotta Feeling","The Black Eyed Peas",2009],
+["Boom Boom Pow","The Black Eyed Peas",2009],["Empire State of Mind","Jay-Z ft. Alicia Keys",2009],
+["Party in the U.S.A.","Miley Cyrus",2009],["Tik Tok","Kesha",2009],["Fireflies","Owl City",2009],
+["Down","Jay Sean ft. Lil Wayne",2009],
+
+/* ---- 90s ---- */
+["Vogue","Madonna",1990],["Ice Ice Baby","Vanilla Ice",1990],["U Can't Touch This","MC Hammer",1990],
+["Nothing Compares 2 U","Sinéad O'Connor",1990],["Poison","Bell Biv DeVoe",1990],
+["Gonna Make You Sweat (Everybody Dance Now)","C+C Music Factory",1990],["Smells Like Teen Spirit","Nirvana",1991],
+["Losing My Religion","R.E.M.",1991],["I Will Always Love You","Whitney Houston",1992],["Baby Got Back","Sir Mix-a-Lot",1992],
+["Jump","Kris Kross",1992],["End of the Road","Boyz II Men",1992],["Under the Bridge","Red Hot Chili Peppers",1992],
+["Nuthin' but a 'G' Thang","Dr. Dre ft. Snoop Dogg",1992],["Whoomp! (There It Is)","Tag Team",1993],
+["What Is Love","Haddaway",1993],["The Sign","Ace of Base",1993],["Mr. Jones","Counting Crows",1993],
+["I Swear","All-4-One",1994],["Basket Case","Green Day",1994],["Kiss from a Rose","Seal",1994],
+["Waterfalls","TLC",1995],["No Scrubs","TLC",1999],["Gangsta's Paradise","Coolio ft. L.V.",1995],
+["You Oughta Know","Alanis Morissette",1995],["Wonderwall","Oasis",1995],["Macarena","Los Del Rio",1995],
+["California Love","2Pac ft. Dr. Dre",1995],["This Is How We Do It","Montell Jordan",1995],
+["No Diggity","Blackstreet ft. Dr. Dre",1996],["Wannabe","Spice Girls",1996],["Killing Me Softly","Fugees",1996],
+["Return of the Mack","Mark Morrison",1996],["Un-Break My Heart","Toni Braxton",1996],["MMMBop","Hanson",1997],
+["Mo Money Mo Problems","The Notorious B.I.G. ft. Puff Daddy / Mase",1997],["Bitter Sweet Symphony","The Verve",1997],
+["Semi-Charmed Life","Third Eye Blind",1997],["Torn","Natalie Imbruglia",1997],["My Heart Will Go On","Celine Dion",1997],
+["Gettin' Jiggy wit It","Will Smith",1997],["...Baby One More Time","Britney Spears",1998],["Believe","Cher",1998],
+["Iris","Goo Goo Dolls",1998],["The Boy Is Mine","Brandy / Monica",1998],["You Get What You Give","New Radicals",1998],
+["Closing Time","Semisonic",1998],["I Want It That Way","Backstreet Boys",1999],["Livin' la Vida Loca","Ricky Martin",1999],
+["Smooth","Santana ft. Rob Thomas",1999],["All Star","Smash Mouth",1999],["Genie in a Bottle","Christina Aguilera",1999],
+["Say My Name","Destiny's Child",1999],["What's My Age Again?","blink-182",1999],
+
+/* ---- before 1990 ---- */
+["Can't Help Falling in Love","Elvis Presley",1961],["Suspicious Minds","Elvis Presley",1969],["Stand by Me","Ben E. King",1961],
+["My Girl","The Temptations",1964],["(I Can't Get No) Satisfaction","The Rolling Stones",1965],
+["Good Vibrations","The Beach Boys",1966],["Respect","Aretha Franklin",1967],["Brown Eyed Girl","Van Morrison",1967],
+["Ain't No Mountain High Enough","Marvin Gaye / Tammi Terrell",1967],["Hey Jude","The Beatles",1968],
+["Here Comes the Sun","The Beatles",1969],["I Heard It Through the Grapevine","Marvin Gaye",1968],
+["Build Me Up Buttercup","The Foundations",1968],["Sweet Caroline","Neil Diamond",1969],
+["American Pie","Don McLean",1971],["Tiny Dancer","Elton John",1971],["Take Me Home, Country Roads","John Denver",1971],
+["Superstition","Stevie Wonder",1972],["Lean on Me","Bill Withers",1972],["Let's Get It On","Marvin Gaye",1973],
+["Piano Man","Billy Joel",1973],["Jolene","Dolly Parton",1973],["Sweet Home Alabama","Lynyrd Skynyrd",1974],
+["Bohemian Rhapsody","Queen",1975],["Dancing Queen","ABBA",1976],["Hotel California","Eagles",1976],
+["More Than a Feeling","Boston",1976],["Play That Funky Music","Wild Cherry",1976],["Stayin' Alive","Bee Gees",1977],
+["Dreams","Fleetwood Mac",1977],["Mr. Blue Sky","Electric Light Orchestra",1977],["September","Earth, Wind & Fire",1978],
+["I Will Survive","Gloria Gaynor",1978],["Le Freak","Chic",1978],["Y.M.C.A.","Village People",1978],
+["Heart of Glass","Blondie",1978],["Don't Stop 'Til You Get Enough","Michael Jackson",1979],
+["Hot Stuff","Donna Summer",1979],["We Are Family","Sister Sledge",1979],["Another One Bites the Dust","Queen",1980],
+["Call Me","Blondie",1980],["9 to 5","Dolly Parton",1980],["You Shook Me All Night Long","AC/DC",1980],
+["Don't Stop Believin'","Journey",1981],["Under Pressure","Queen / David Bowie",1981],["Jessie's Girl","Rick Springfield",1981],
+["Tainted Love","Soft Cell",1981],["Billie Jean","Michael Jackson",1982],["Beat It","Michael Jackson",1982],
+["Thriller","Michael Jackson",1982],["Africa","Toto",1982],["Eye of the Tiger","Survivor",1982],
+["Come On Eileen","Dexys Midnight Runners",1982],["Hungry Like the Wolf","Duran Duran",1982],
+["Girls Just Want to Have Fun","Cyndi Lauper",1983],["Every Breath You Take","The Police",1983],
+["Sweet Dreams (Are Made of This)","Eurythmics",1983],["Total Eclipse of the Heart","Bonnie Tyler",1983],
+["Jump","Van Halen",1983],["When Doves Cry","Prince",1984],["Kiss","Prince",1986],["Material Girl","Madonna",1984],
+["Like a Prayer","Madonna",1989],["Footloose","Kenny Loggins",1984],["Careless Whisper","George Michael",1984],
+["Faith","George Michael",1987],["Wake Me Up Before You Go-Go","Wham!",1984],["Ghostbusters","Ray Parker Jr.",1984],
+["Somebody's Watching Me","Rockwell",1984],["Take On Me","a-ha",1984],["Running Up That Hill","Kate Bush",1985],
+["Everybody Wants to Rule the World","Tears for Fears",1985],["Don't You (Forget About Me)","Simple Minds",1985],
+["Livin' on a Prayer","Bon Jovi",1986],["Walk This Way","Run-D.M.C. ft. Aerosmith",1986],
+["Sweet Child o' Mine","Guns N' Roses",1987],["I Wanna Dance with Somebody (Who Loves Me)","Whitney Houston",1987],
+["Never Gonna Give You Up","Rick Astley",1987],["With or Without You","U2",1987],
+["Pour Some Sugar on Me","Def Leppard",1987],["Push It","Salt-N-Pepa",1987],["Just Like Heaven","The Cure",1987],
+["Fast Car","Tracy Chapman",1988],["Love Shack","The B-52's",1989],["Free Fallin'","Tom Petty",1989]
+];
+
+// Other names we accept for an artist in hard mode.
+const ALIASES = {
+  "The Notorious B.I.G.":["biggie","biggie smalls","notorious big"], "2Pac":["tupac","tupac shakur"],
+  "Silk Sonic":["bruno mars","anderson paak"], "HUNTR/X":["huntrix","kpop demon hunters"], "*NSYNC":["nsync","n sync"],
+  "P!nk":["pink"], "Electric Light Orchestra":["elo"], "Puff Daddy":["diddy","p diddy"], "Kesha":["ke$ha"],
+  "Macklemore":["macklemore and ryan lewis"], "Wham!":["george michael"], "Fugees":["lauryn hill"],
+  "Jay-Z":["jay z","hov"], "Red Hot Chili Peppers":["rhcp","chili peppers"], "The Black Eyed Peas":["bep"]
+};
+
+/* =====================================================================
+   Everything below is the app
+   ===================================================================== */
+
+const AVATARS = [
+  ["🥩","Licensed to Grill"],["🧦","Socks 'n' Sandals"],["🏈","Tuesday Morning Quarterback"],["🩳","Cargo Shorts Connoisseur"],
+  ["🌡️","Thermostat Tyrant"],["🛋️","Recliner Ranger"],["🍺","Keg, Not Six-Pack"],["😴","Nap Champion"],
+  ["🦖","Dadasaurus Flex"],["🌭","Father Figure (Round)"],["🚜","Lawn Ranger"],["🥁","Steering Wheel Drummer"]
+];
+const RANKS = [[0,"Elevator Music Enjoyer"],[150,"Dial-Up Dad"],[400,"Minivan DJ"],[800,"Carpool Karaoke Regular"],
+  [1500,"Backyard Boombox Boss"],[2500,"Aux Cord Custodian"],[4000,"Certified Bop Recognizer"],
+  [6000,"Hot 100 Dad"],[9000,"Unc Status: Revoked"]];
+const BADGES = [
+  ["first","🎽","First rep","Finish a workout"],
+  ["gains","💪","Visible gains","Score 50 or more on hard mode"],
+  ["swole","🦻","Swole ears","Score 80 or more on hard mode"],
+  ["perfect","💯","Perfect form","Score 100 in any workout"],
+  ["kids","🛹","How do you do, fellow kids","Nail 10 songs from the current chart"],
+  ["myday","📼","Back in my day","Nail 10 songs from before 1990"],
+  ["earday","📆","Never skip ear day","Train three days in a row"],
+  ["onetake","☝️","One-take wonder","Score 70 or more without a single replay"],
+  ["remedial","🎓","Remedial graduate","Fix 10 songs you used to miss"]
+];
+const TIER_LABEL = {C:"On the chart now", R:"Last five years", D10:"2010 to 2020", D00:"2000s", D90:"90s", OLD:"Before 1990"};
+// One of these shows after every answer. Add your own: plain strings, one per line.
+const QUIPS = {
+  full: [
+    "Look at you, knowing things.",
+    "The youths would be impressed. Briefly.",
+    "That's a clean rep.",
+    "Somewhere a teenager nodded in respect.",
+    "Nailed it. Your knees hurt, but your ears work.",
+    "Correct. You may now explain it to the table at length.",
+    "Both halves. Tell the group chat. They won't care, but tell them.",
+    "You knew that faster than you can find your keys.",
+    "Ten points. That's a whole coffee's worth of serotonin.",
+    "Certified not out of touch, for at least one song.",
+    "That's the kind of answer that earns a nod from the babysitter.",
+    "Flawless. Dad jeans, young ears.",
+    "Right, and you didn't even have to ask your kid.",
+    "You've clearly been listening to something other than podcasts.",
+    "Yes. Put it on the fridge.",
+    "Correct, and nobody had to hum it for you.",
+    "Big 'I heard this at the gym' energy. It worked.",
+    "Two for two. The car radio is finally paying off.",
+    "Right on both. Treat yourself to the good parking spot.",
+    "That answer had a full head of hair.",
+    "Ten out of ten. You're allowed one smug sip of your beer.",
+    "Correct. Please don't try the dance."
+  ],
+  half: [
+    "Half a rep still counts.",
+    "Partial credit, like furniture with two screws left over.",
+    "Close. Spot yourself on the other half next time.",
+    "Five points. The other five are in your other pants.",
+    "You knew half. So, a normal Tuesday.",
+    "Half right is still more than the table next to us.",
+    "It was on the tip of your tongue, next to the grocery list you forgot.",
+    "One out of two. In baseball that's the Hall of Fame.",
+    "Five points. Like showing up to the potluck with just napkins.",
+    "A solid B-minus. Your parents would've been fine with it.",
+    "You recognized it the way you recognize other parents at pickup: sort of.",
+    "Half credit. You read the first half of the parenting book too.",
+    "You got one. The other one waved at you from across the room.",
+    "Fifty percent. That's a passing grade in assembling a trampoline."
+  ],
+  zero: [
+    "That one's going in your remedial reps.",
+    "Your kids just sighed and they don't know why.",
+    "Shake it off. (Taylor Swift, 2014. Write that down.)",
+    "Walk it off.",
+    "Nope. But you said it with confidence, and that's what counts at pickup.",
+    "Not even close, but the nachos at trivia are still good.",
+    "That's okay. You know other things. Like mortgage rates.",
+    "Wrong the way your GPS is wrong: loudly and with commitment.",
+    "A swing and a miss. Stretch first next time.",
+    "No points, but you sat down and tried, which is cardio at our age.",
+    "You'll get it next time. Everything comes back around, like cargo shorts.",
+    "Incorrect. Blame the daycare cold you've had since September.",
+    "That's a miss. File it next to 'assembled the crib without the instructions.'",
+    "Nothing. That song is younger than your favorite hoodie.",
+    "Ouch. On the bright side, nobody saw that but the leaderboard.",
+    "Wrong answer, right attitude. Mostly.",
+    "Zero. The good news: nowhere to go but the remedial reps.",
+    "No. And you nodded along like you knew it, too.",
+    "That one got past you like bedtime gets past a toddler.",
+    "Not it. You were probably thinking of a different song that also has drums.",
+    "Zero points, full marks for squinting thoughtfully.",
+    "Missed it. Your ears were busy listening for a kid falling off something."
+  ]
+};
+// Extra comments that only show for certain eras.
+const ERA_QUIPS = {
+  C: {
+    full: ["That song is on the chart right now. Who even are you?", "A current hit. Somebody's been borrowing the teenagers' playlist.", "That's this week's chart. You're practically an intern.", "A song from this year, identified by a man with a favorite spatula."],
+    zero: ["That's on the chart this very week. The youths know it. You will too.", "It's a current hit. In your defense, you've been busy keeping small people alive.", "This one is everywhere right now. Everywhere you aren't, apparently.", "It came out this year. So did your last full night of sleep, in theory."]
+  },
+  YOURS: {
+    full: ["That one's from your prime. Good to know it's still in there.", "Of course you knew it. You owned the CD.", "You burned that onto a mix once. Admit it."],
+    zero: ["That came out back when you still had opinions about music. Yikes.", "You were alive and listening for that one. No excuses.", "You definitely slow-danced to that. Or stood near people who did."]
+  },
+  OLD: {
+    full: ["An oldie. Home turf.", "Of course you knew that one. It was on in your parents' car.", "Vintage knowledge. Like you."],
+    zero: ["That one's older than you are. Still counts.", "Missed an oldie. Your dad would like a word, and he isn't even on this team.", "That was a classic. Call your mother, she knows it."]
+  }
+};
+const usedQuips = new Set();
+function quipFor(pts, song) {
+  const kind = pts === 10 ? "full" : pts === 5 ? "half" : "zero", t = tierOf(song);
+  const era = t === "C" ? "C" : t === "OLD" ? "OLD" : (t === "D00" || t === "D90") ? "YOURS" : null;
+  let pool = QUIPS[kind];
+  if (era && ERA_QUIPS[era][kind] && Math.random() < 0.4) pool = ERA_QUIPS[era][kind];
+  let fresh = pool.filter(q => !usedQuips.has(q));
+  if (!fresh.length) { pool.forEach(q => usedQuips.delete(q)); fresh = pool; }
+  const q = fresh[Math.floor(Math.random() * fresh.length)]; usedQuips.add(q); return q;
+}
+const BARS = 56;
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const slug = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "x";
+const joinNames = n => n.length < 2 ? n[0] : n.slice(0, -1).join(", ") + " & " + n[n.length - 1];
+
+/* ---------- songs ---------- */
+function mk(t, a, y, extra) {
+  const parts = a.split(" ft. ");
+  const leads = parts[0].split(" / "), feats = parts[1] ? parts[1].split(" / ") : [];
+  return Object.assign({ t, y, leads, feats, artist: joinNames(leads) + (feats.length ? " ft. " + joinNames(feats) : ""), key: slug(t + "-" + leads[0]) }, extra || {});
+}
+const SONGS = [], BY_KEY = {};
+function addSong(s) { if (BY_KEY[s.key]) { if (s.host) BY_KEY[s.key].host = true; return; } BY_KEY[s.key] = s; SONGS.push(s); }
+CHART.forEach(([t, a, pos]) => addSong(mk(t, a, null, { cur: true, pos })));
+LIBRARY.forEach(([t, a, y, tier]) => addSong(mk(t, a, y, tier ? { tier } : null)));
+HOST_SETLISTS.forEach(set => (set.songs || []).forEach(([t, a, y]) => addSong(mk(t, a, y || null, { host: true }))));
+const tierOf = s => s.tier || (s.cur ? "C" : !s.y ? "R" : s.y >= 2021 ? "R" : s.y >= 2010 ? "D10" : s.y >= 2000 ? "D00" : s.y >= 1990 ? "D90" : "OLD");
+const TIERS = { C: [], R: [], D10: [], D00: [], D90: [], OLD: [] };
+SONGS.forEach(s => TIERS[tierOf(s)].push(s));
+const MID = [...TIERS.D10, ...TIERS.D00, ...TIERS.D90];
+const HOST = SONGS.filter(s => s.host);
+
+const PLANS = [
+  { id: "mix", name: "Trivia night simulation", desc: "The real mix: 2 on the chart now, 3 from the last five years, 4 from 1990 to 2020, 1 oldie." },
+  { id: "cur", name: "On the chart now", desc: "Billboard Hot 100, week of " + CHART_DATE + "." },
+  { id: "recent", name: "Last five years", desc: "2021 to today, current chart included." },
+  { id: "d10", name: "2010 to 2020", desc: "" }, { id: "d00", name: "2000s", desc: "" }, { id: "d90", name: "90s", desc: "" },
+  { id: "old", name: "Before 1990", desc: "Disco, classic rock, the 80s. Only about one a night, so don't live here." },
+  { id: "missed", name: "Remedial reps", desc: "The songs you got wrong, until you stop getting them wrong." }
+];
+if (HOST.length) PLANS.splice(1, 0, { id: "host", name: "The host's past picks", desc: "Songs from our actual trivia nights." });
+
+/* ---------- storage ---------- */
+const LS_KEY = "dadbod-bootcamp-v1";
+let store = { current: null, profiles: {}, clips: {}, settings: { mode: "easy", clip: 20, plan: "mix" } };
+function loadStore() { try { const s = JSON.parse(localStorage.getItem(LS_KEY)); if (s) { store = Object.assign(store, s); store.settings = Object.assign({ mode: "easy", clip: 20, plan: "mix" }, s.settings || {}); } } catch (e) {} }
+function saveStore() { try { localStorage.setItem(LS_KEY, JSON.stringify(store)); } catch (e) {} }
+const me = () => store.current ? store.profiles[store.current] : null;
+function newProfile(name, avatar) { return { name, avatar, xp: 0, rounds: 0, bestHard: 0, bestEasy: 0, weekKey: "", weekXp: 0, streak: 0, lastDay: "", tiers: {}, hist: {}, badges: [], count: { cur: 0, old: 0, fixed: 0 }, updated: 0 }; }
+const pad = n => (n < 10 ? "0" : "") + n;
+const dayKey = (d = new Date()) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+function weekKey(d = new Date()) { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return dayKey(x); }
+const rankOf = xp => { let r = RANKS[0]; for (const k of RANKS) if (xp >= k[0]) r = k; return r[1]; };
+const nextRank = xp => RANKS.find(k => k[0] > xp);
+const weekXpOf = p => p.weekKey === weekKey() ? (p.weekXp || 0) : 0;
+
+/* ---------- shared leaderboard (Firebase Realtime Database over REST) ---------- */
+const DB = TEAM_DB_URL.trim().replace(/\/+$/, "");
+let net = { status: DB ? "loading" : "off", players: {} };
+async function fetchPlayers() {
+  if (!DB) return;
+  try {
+    const r = await fetch(DB + "/dadbods/players.json", { cache: "no-store" });
+    if (!r.ok) throw new Error("status " + r.status);
+    net.players = (await r.json()) || {}; net.status = "ok";
+  } catch (e) { net.status = "error"; }
+}
+async function pushMe() {
+  const p = me(); if (!DB || !p) return;
+  const doc = { name: p.name, avatar: p.avatar, xp: p.xp, rounds: p.rounds, bestHard: p.bestHard, bestEasy: p.bestEasy, weekKey: p.weekKey, weekXp: p.weekXp, streak: p.streak, lastDay: p.lastDay, badges: p.badges, tiers: p.tiers, count: p.count, missed: Object.keys(p.hist).filter(k => p.hist[k].miss).slice(0, 60), updated: Date.now() };
+  try { const r = await fetch(DB + "/dadbods/players/" + store.current + ".json", { method: "PUT", body: JSON.stringify(doc) }); if (r.ok) { net.players[store.current] = doc; net.status = "ok"; } else net.status = "error"; } catch (e) { net.status = "error"; }
+}
+function adoptRemote(id, doc) {
+  const p = Object.assign(newProfile(doc.name, doc.avatar || 0), doc);
+  p.badges = doc.badges || []; p.tiers = doc.tiers || {}; p.count = Object.assign({ cur: 0, old: 0, fixed: 0 }, doc.count || {});
+  p.hist = {}; (doc.missed || []).forEach(k => { p.hist[k] = { n: 1, ok: 0, miss: true }; });
+  delete p.missed; store.profiles[id] = p;
+}
+
+/* ---------- answer checking ---------- */
+const NUMS = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+function norm(s) {
+  s = String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  s = s.replace(/p!nk/g, "pink").replace(/\$/g, "s").replace(/[&+]/g, " and ");
+  s = s.replace(/\b(zero|one|two|three|four|five|six|seven|eight|nine|ten)\b/g, m => NUMS[m]);
+  s = s.replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim().replace(/^(the|a|an) /, "");
+  return s.replace(/ /g, "");
+}
+function lev(a, b) {
+  if (a === b) return 0; if (!a.length) return b.length; if (!b.length) return a.length;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+const slack = n => n <= 3 ? 0 : n <= 5 ? 1 : n <= 9 ? 2 : n <= 14 ? 3 : 4;
+function close(input, targets) {
+  const a = norm(input); if (!a) return false;
+  return targets.some(t => { const b = norm(t); return b && lev(a, b) <= slack(b.length); });
+}
+function titleTargets(t) {
+  const out = [t], bare = t.replace(/\s*\([^)]*\)\s*/g, " ").trim();
+  if (bare && bare !== t) out.push(bare);
+  const inner = t.match(/\(([^)]+)\)/); if (inner && inner[1].length >= 5) out.push(inner[1]);
+  return out;
+}
+function artistTargets(song) {
+  const out = [];
+  [...song.leads, ...song.feats].forEach(n => {
+    out.push(n); (ALIASES[n] || []).forEach(x => out.push(x));
+    const words = n.split(" "); if (words.length > 1 && words[words.length - 1].length >= 4) out.push(words[words.length - 1]);
+  });
+  if (song.leads.length > 1) out.push(song.leads.join(" and "));
+  return out;
+}
+
+/* ---------- picking songs ---------- */
+function weightOf(s, p) {
+  let w = s.cur ? (s.pos <= 25 ? 3 : s.pos <= 50 ? 2 : 1) : 1;
+  if (s.host) w *= 2;
+  const h = p.hist[s.key];
+  if (!h) w *= 2; else if (h.miss) w *= 3; else if (h.ok >= 2) w *= 0.4;
+  return w;
+}
+function draw(pool, n, used, p) {
+  const c = pool.filter(s => !used.has(s.key)), out = [];
+  while (out.length < n && c.length) {
+    const tot = c.reduce((a, s) => a + weightOf(s, p), 0); let r = Math.random() * tot, i = 0;
+    for (; i < c.length - 1; i++) { r -= weightOf(c[i], p); if (r <= 0) break; }
+    const s = c.splice(i, 1)[0]; used.add(s.key); out.push(s);
+  }
+  return out;
+}
+function buildRound(plan, p) {
+  const used = new Set(); let list = [];
+  const mix = () => [...draw(TIERS.C, 2, used, p), ...draw(TIERS.R, 3, used, p), ...draw(MID, 4, used, p), ...draw(TIERS.OLD, 1, used, p)];
+  if (plan === "mix") list = mix();
+  else if (plan === "cur") list = draw(TIERS.C, 10, used, p);
+  else if (plan === "recent") list = draw([...TIERS.C, ...TIERS.R], 10, used, p);
+  else if (plan === "d10") list = draw(TIERS.D10, 10, used, p);
+  else if (plan === "d00") list = draw(TIERS.D00, 10, used, p);
+  else if (plan === "d90") list = draw(TIERS.D90, 10, used, p);
+  else if (plan === "old") list = draw(TIERS.OLD, 10, used, p);
+  else if (plan === "host") list = draw(HOST, 10, used, p);
+  else if (plan === "missed") list = draw(SONGS.filter(s => p.hist[s.key] && p.hist[s.key].miss), 10, used, p);
+  if (list.length < 10) list = list.concat(mix()).slice(0, 10);
+  return { list: shuffle(list), used };
+}
+function buildOptions(song) {
+  const credited = [...song.leads, ...song.feats];
+  const others = shuffle(TIERS[tierOf(song)].filter(s => s.key !== song.key));
+  const artists = [song.artist];
+  for (const s of others) { if (artists.length >= 4) break; if (!credited.includes(s.leads[0]) && !artists.some(a => a === s.artist || a.indexOf(s.leads[0]) === 0)) artists.push(s.artist); }
+  const titles = [song.t];
+  const same = shuffle(SONGS.filter(s => s.leads[0] === song.leads[0] && norm(s.t) !== norm(song.t)));
+  if (same[0]) titles.push(same[0].t);
+  for (const s of others) { if (titles.length >= 4) break; if (!titles.some(t => norm(t) === norm(s.t))) titles.push(s.t); }
+  return { artists: shuffle(artists), titles: shuffle(titles) };
+}
+
+/* ---------- finding the clip (Apple's free 30-second previews) ---------- */
+let jsonpN = 0;
+function jsonp(url) {
+  return new Promise((res, rej) => {
+    const cb = "__dadbod" + (++jsonpN) + "_" + Date.now(), s = document.createElement("script");
+    const done = () => { clearTimeout(timer); try { delete window[cb]; } catch (e) { window[cb] = undefined; } s.remove(); };
+    const timer = setTimeout(() => { done(); rej(new Error("timeout")); }, 9000);
+    window[cb] = d => { done(); res(d); };
+    s.onerror = () => { done(); rej(new Error("network")); };
+    s.src = url + "&callback=" + cb; document.head.appendChild(s);
+  });
+}
+const BAD_VERSION = /\b(live|remix|karaoke|instrumental|acoustic|tribute|cover|re-?recorded|demo|sped up|slowed|a cappella|made famous|originally performed|lullaby|8-bit)\b/i;
+function chooseTrack(results, song) {
+  const wantTitles = titleTargets(song.t).map(norm), leads = song.leads.map(norm);
+  let best = null, bestScore = 0;
+  (results || []).forEach((r, i) => {
+    if (!r.previewUrl || (r.kind && r.kind !== "song")) return;
+    const tn = norm(r.trackName || ""), tb = norm((r.trackName || "").replace(/\s*[\(\[][^\)\]]*[\)\]]\s*/g, " "));
+    let ts = 0;
+    if (wantTitles.includes(tb) || wantTitles.includes(tn)) ts = 3; else if (wantTitles.some(w => w.length >= 4 && (tn.indexOf(w) === 0 || tb.indexOf(w) === 0))) ts = 2;
+    if (!ts) return;
+    const an = norm(r.artistName || "");
+    if (!leads.some(l => an.indexOf(l) >= 0 || (an.length >= 4 && l.indexOf(an) >= 0))) return;
+    let score = ts + 2 - i * 0.01;
+    if (BAD_VERSION.test(r.trackName || "") && !BAD_VERSION.test(song.t)) score -= 2;
+    if (/karaoke|tribute|live/i.test(r.collectionName || "")) score -= 1.5;
+    if (score > bestScore) { bestScore = score; best = r; }
+  });
+  return best;
+}
+const pending = {};
+function resolveClip(song) {
+  if (store.clips[song.key]) return Promise.resolve(store.clips[song.key]);
+  if (pending[song.key]) return pending[song.key];
+  const base = "https://itunes.apple.com/search?country=US&media=music&entity=song&limit=15&term=";
+  const bare = song.t.replace(/\s*\([^)]*\)\s*/g, " ").trim() || song.t;
+  const p = jsonp(base + encodeURIComponent(song.leads[0] + " " + bare))
+    .then(d => chooseTrack(d.results, song) || jsonp(base + encodeURIComponent(bare) + "&attribute=songTerm").then(d2 => chooseTrack(d2.results, song)))
+    .then(r => { delete pending[song.key]; if (!r) throw new Error("no match"); store.clips[song.key] = r.previewUrl; saveStore(); return r.previewUrl; })
+    .catch(e => { delete pending[song.key]; throw e; });
+  pending[song.key] = p; return p;
+}
+function fakePeaks(seed) {
+  let x = 0; for (const ch of seed) x = (x * 31 + ch.charCodeAt(0)) >>> 0;
+  const rnd = () => { x = (x * 1664525 + 1013904223) >>> 0; return x / 4294967296; };
+  const out = []; let v = 0.5;
+  for (let i = 0; i < BARS; i++) { v = Math.max(0.15, Math.min(1, v + (rnd() - 0.5) * 0.5)); out.push(v); }
+  return out;
+}
+async function realPeaks(url, seconds) {
+  const AC = window.OfflineAudioContext || window.webkitOfflineAudioContext; if (!AC) throw new Error("no decoder");
+  const buf = await (await fetch(url)).arrayBuffer();
+  const ctx = new AC(1, 2, 44100);
+  const audioBuf = await new Promise((res, rej) => { const pr = ctx.decodeAudioData(buf, res, rej); if (pr && pr.catch) pr.catch(rej); });
+  const ch = audioBuf.getChannelData(0), n = Math.min(ch.length, Math.floor(audioBuf.sampleRate * seconds)), per = Math.floor(n / BARS);
+  const out = []; let max = 0;
+  for (let b = 0; b < BARS; b++) { let sum = 0; for (let i = b * per; i < (b + 1) * per; i += 8) sum += ch[i] * ch[i]; const v = Math.sqrt(sum / (per / 8)); out.push(v); if (v > max) max = v; }
+  return out.map(v => Math.max(0.08, v / (max || 1)));
+}
+
+/* ---------- app state ---------- */
+const audio = $("#audio"), app = $("#app"), tabs = $("#tabs");
+let ui = { screen: "welcome", avatar: 0, clash: null, lbTab: "week", scoutKey: null };
+let game = null, clipOn = false, clipLimit = 20;
+
+function stopAudio() { clipOn = false; try { audio.pause(); } catch (e) {} }
+function go(screen) { ui.screen = screen; stopAudio(); ui.scoutKey = null; render(); window.scrollTo(0, 0); if (screen === "board" && DB) fetchPlayers().then(() => { if (ui.screen === "board") render(); }); }
+
+function render() {
+  const showTabs = ["home", "board", "scout"].includes(ui.screen);
+  tabs.hidden = !showTabs;
+  tabs.querySelectorAll("button").forEach(b => { if (b.dataset.to === ui.screen) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  app.innerHTML = ({ welcome: viewWelcome, home: viewHome, game: viewGame, results: viewResults, board: viewBoard, scout: viewScout }[ui.screen])();
+  if (ui.screen === "game") { updateDeck(); bindGameInputs(); }
+}
+
+const INK = "#2b1b3d";
+const reel = cx => `<g class="reel"><circle cx="${cx}" cy="124.5" r="7.5" fill="#fffaf0"/><path d="M${cx} 118.5v12M${cx - 5.2} 121.5l10.4 6M${cx - 5.2} 127.5l10.4-6" stroke="${INK}" stroke-width="1.7"/></g>`;
+const LOGO = `<svg class="hero" viewBox="0 0 364 206" aria-hidden="true">
+<path d="M254 150C254 50 342 50 342 150" fill="none" stroke="${INK}" stroke-width="7" stroke-linecap="round"/>
+<rect x="247" y="130" width="14" height="36" rx="4" fill="${INK}"/><rect x="335" y="130" width="14" height="36" rx="4" fill="${INK}"/>
+<ellipse cx="269" cy="160" rx="15" ry="26" fill="#6fd0c4" stroke="${INK}" stroke-width="3"/><ellipse cx="327" cy="160" rx="15" ry="26" fill="#6fd0c4" stroke="${INK}" stroke-width="3"/>
+<path d="M263 148q5 12 0 24M321 148q5 12 0 24" fill="none" stroke="${INK}" stroke-width="1.6" stroke-linecap="round" opacity=".45"/>
+<path d="M254 166C254 204 236 200 234 160S236 118 222 118" fill="none" stroke="${INK}" stroke-width="2.5" stroke-linecap="round"/>
+<rect x="27" y="57" width="190" height="140" rx="16" fill="${INK}"/>
+<rect x="44" y="36" width="28" height="26" rx="4" fill="#fffaf0" stroke="${INK}" stroke-width="3"/><rect x="78" y="36" width="28" height="26" rx="4" fill="#fffaf0" stroke="${INK}" stroke-width="3"/>
+<rect x="112" y="32" width="28" height="30" rx="4" fill="#ffd166" stroke="${INK}" stroke-width="3"/><path d="M122 39l9 5-9 5z" fill="${INK}"/>
+<rect x="146" y="36" width="28" height="26" rx="4" fill="#fffaf0" stroke="${INK}" stroke-width="3"/>
+<rect x="208" y="111" width="14" height="14" rx="3" fill="${INK}"/>
+<rect x="20" y="50" width="190" height="140" rx="16" fill="#ff6f59" stroke="${INK}" stroke-width="3"/>
+<rect x="38" y="68" width="154" height="78" rx="9" fill="${INK}"/>
+<rect x="47" y="76" width="136" height="62" rx="5" fill="#fffaf0"/>
+<rect x="55" y="81" width="120" height="19" rx="2" fill="#fff" stroke="${INK}" stroke-width="1.5"/>
+<text x="115" y="95" text-anchor="middle" font-family="'Permanent Marker','Comic Sans MS',cursive" font-size="11.5" fill="${INK}">dad mix, side A</text>
+<rect x="55" y="103" width="120" height="3.5" fill="#ff6f59"/><rect x="55" y="108.5" width="120" height="3.5" fill="#6fd0c4"/>
+<rect x="75" y="115" width="80" height="19" rx="9.5" fill="${INK}"/>${reel(91)}${reel(139)}
+<path d="M38 162h66" stroke="#ffd166" stroke-width="4" stroke-linecap="round"/><path d="M38 170h66" stroke="#fffaf0" stroke-width="4" stroke-linecap="round"/><path d="M38 178h66" stroke="#6fd0c4" stroke-width="4" stroke-linecap="round"/>
+<text x="118" y="174" font-family="'Krona One','Arial Black',sans-serif" font-size="8.5" fill="${INK}">DB-40</text>
+<circle cx="178" cy="168" r="12" fill="#fffaf0" stroke="${INK}" stroke-width="3"/><path d="M178 168v-8" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
+</svg>`;
+const MINI = `<svg viewBox="0 0 44 29" aria-hidden="true"><rect x="1.5" y="1.5" width="41" height="26" rx="4" fill="#ff6f59" stroke="${INK}" stroke-width="2.5"/><rect x="7" y="6" width="30" height="7" rx="1" fill="#fffaf0"/><rect x="11" y="16" width="22" height="8" rx="4" fill="${INK}"/><circle cx="16" cy="20" r="2.2" fill="#fffaf0"/><circle cx="28" cy="20" r="2.2" fill="#fffaf0"/></svg>`;
+
+function viewWelcome() {
+  const known = Object.keys(store.profiles);
+  return `${LOGO}
+  <h1 class="word">DADBOD<span>BOOTCAMP</span></h1>
+  <p class="tagline">Music trivia training for dads who stopped keeping up around 2011.</p>
+  <div class="card">
+    <h2 style="margin-top:0">Who's training today?</h2>
+    ${ui.clash ? `<div class="note" role="alert"><b>${esc(ui.clash.name)}</b> is already on the roster. Is that you?
+      <div class="row wrap" style="margin-top:10px"><button class="btn primary" data-act="claim">Yes, load my stats</button><button class="btn" data-act="unclash">No, I'll pick another name</button></div></div>` : `
+    <label class="lab" for="name">Your name</label>
+    <input type="text" id="name" maxlength="18" autocomplete="off" placeholder="What the other dads call you">
+    <div class="lab" id="avlab">Pick your spirit dad</div>
+    <div class="avatars" role="group" aria-labelledby="avlab">${AVATARS.map((a, i) => `<button type="button" data-act="avatar" data-i="${i}" aria-pressed="${i === ui.avatar}"><b>${a[0]}</b>${esc(a[1])}</button>`).join("")}</div>
+    <p id="joinerr" class="small" style="color:var(--red);min-height:1.3em;margin:10px 0 4px" role="alert"></p>
+    <button class="btn primary wide" data-act="join">Start training</button>
+    ${known.length ? `<p class="small muted" style="margin:14px 0 0">Already on this phone: ${known.map(id => `<button class="btn plain" data-act="resume" data-id="${esc(id)}">${esc(store.profiles[id].name)}</button>`).join(" ")}</p>` : ""}`}
+  </div>
+  <div class="card">
+    <h2 style="margin-top:0">How a workout runs</h2>
+    <ol class="rules"><li>Ten songs, 20 seconds each.</li><li>You get one replay per song, same as trivia night.</li><li>5 points for the artist, 5 for the title. Spelling doesn't count.</li></ol>
+    <p class="small muted" style="margin:10px 0 0">Clips are Apple's free song previews, which usually start partway into the song. After each answer there's a YouTube link so you can hear the real intro.</p>
+  </div>`;
+}
+
+function nameTag(p) {
+  const nr = nextRank(p.xp);
+  return `<div class="tag"><div class="patch" title="${esc((AVATARS[p.avatar] || AVATARS[0])[1])}">${(AVATARS[p.avatar] || AVATARS[0])[0]}</div>
+  <div class="grow"><div class="who">${esc(p.name)}</div><div class="small"><b>${esc(rankOf(p.xp))}</b></div>
+  <div class="small muted">${p.xp} XP${nr ? `, ${nr[0] - p.xp} to ${esc(nr[1])}` : ""}${p.streak > 1 && (p.lastDay === dayKey() || p.lastDay === dayKey(new Date(Date.now() - 864e5))) ? `. ${p.streak}-day streak` : ""}</div></div></div>`;
+}
+function metersHtml(p) {
+  const rows = ["C", "R", "D10", "D00", "D90", "OLD"].map(k => { const t = p.tiers[k]; return t && t[1] ? [k, Math.round(100 * t[0] / t[1]), t[1] / 10] : null; }).filter(Boolean);
+  if (!rows.length) return `<p class="muted" style="margin:0">Finish a workout and this fills in with how you do in each era, so you know where to train.</p>`;
+  return rows.map(([k, pct, n]) => `<div class="meter"><span>${TIER_LABEL[k]}</span><span class="bar" role="img" aria-label="${pct} percent of points across ${n} songs"><i style="width:${pct}%"></i></span><span class="pct">${pct}%</span></div>`).join("") + `<p class="small muted" style="margin:8px 0 0">Share of possible points you've earned in each era.</p>`;
+}
+function viewHome() {
+  const p = me(), s = store.settings, missed = Object.values(p.hist).filter(h => h.miss).length;
+  return `<div class="row" style="margin-bottom:14px"><div class="logo-mini grow">${MINI}<span>DADBOD<br>BOOTCAMP</span></div><button class="btn plain small" data-act="switch">Switch dad</button></div>
+  ${nameTag(p)}
+  <h2>Pick a workout</h2>
+  <div class="plans">${PLANS.map(pl => `<button class="plan" data-act="plan" data-id="${pl.id}" aria-pressed="${s.plan === pl.id}"><b>${esc(pl.name)}${pl.id === "missed" ? ` (${missed})` : ""}</b>${pl.desc ? `<span>${esc(pl.desc)}</span>` : ""}</button>`).join("")}</div>
+  <h2>Difficulty</h2>
+  <div class="seg" role="group" aria-label="Difficulty">
+    <button data-act="mode" data-v="easy" aria-pressed="${s.mode === "easy"}">Easy<small>Multiple choice</small></button>
+    <button data-act="mode" data-v="hard" aria-pressed="${s.mode === "hard"}">Hard<small>Type it in. Double XP</small></button></div>
+  <h2>Clip length</h2>
+  <div class="seg" role="group" aria-label="Clip length">${[10, 20, 30].map(v => `<button data-act="clip" data-v="${v}" aria-pressed="${s.clip === v}">${v} seconds</button>`).join("")}</div>
+  <button class="btn primary wide" data-act="start" style="margin-top:22px;min-height:62px;font-size:1.2rem">Start workout</button>
+  <h2>Your weak spots</h2><div class="card">${metersHtml(p)}</div>
+  <h2>Merit badges</h2><div class="card">${BADGES.map(b => `<div class="badge ${p.badges.includes(b[0]) ? "" : "locked"}"><div class="ico">${b[1]}</div><div><b>${esc(b[2])}</b><div class="small muted">${esc(b[3])}${p.badges.includes(b[0]) ? ". Earned" : ""}</div></div></div>`).join("")}</div>`;
+}
+
+/* ---------- game ---------- */
+function startRound() {
+  const p = me(), s = store.settings, r = buildRound(s.plan, p);
+  game = { plan: s.plan, mode: s.mode, clip: s.clip, songs: r.list, used: r.used, i: 0, results: [], score: 0, replays: 0, cur: null };
+  ui.screen = "game"; loadSong(); window.scrollTo(0, 0);
+}
+function loadSong(isRetry) {
+  const song = game.songs[game.i], token = Math.random();
+  game.cur = { song, token, status: "loading", plays: 0, peaks: fakePeaks(song.key), opts: game.mode === "easy" ? buildOptions(song) : null, pickA: null, pickT: null, res: null, tries: (isRetry && game.cur ? game.cur.tries : 0) };
+  stopAudio(); render();
+  resolveClip(song).then(url => {
+    if (!game || game.cur.token !== token) return;
+    game.cur.url = url; audio.src = url; audio.load(); game.cur.status = "ready"; updateDeck();
+    const conn = navigator.connection || {};
+    if (!conn.saveData && !/2g|3g/.test(conn.effectiveType || "")) realPeaks(url, game.clip).then(pk => { if (game && game.cur.token === token) game.cur.peaks = pk; }).catch(() => {});
+    if (game.i > 0) playClip(true);
+    const nxt = game.songs[game.i + 1]; if (nxt) resolveClip(nxt).catch(() => {});
+  }).catch(() => { if (!game || game.cur.token !== token) return; swapSong(true); });
+}
+function swapSong(auto) {
+  const c = game.cur;
+  if (auto && c.tries >= 3) { c.status = "error"; updateDeck(); return; }
+  const tries = c.tries + 1, sub = draw(TIERS[tierOf(c.song)], 1, game.used, me())[0];
+  if (!sub) { c.status = "error"; updateDeck(); return; }
+  game.songs[game.i] = sub; game.cur.tries = tries; loadSong(true);
+}
+function playClip(auto, free) {
+  const c = game.cur; if (!c || !c.url || clipOn || c.starting) return;
+  if (!free && (c.plays >= 2 || c.res)) return;
+  try { audio.currentTime = 0; } catch (e) {}
+  clipLimit = game.clip; c.starting = true;
+  const pr = audio.play();
+  const started = () => { c.starting = false; if (!game || game.cur !== c) return; clipOn = true; if (!free) { c.plays++; if (c.plays === 2) game.replays++; c.status = "playing"; } updateDeck(); };
+  const failed = () => { c.starting = false; if (!auto && game && game.cur === c && !c.res) { c.status = "blocked"; updateDeck(); } };
+  if (pr && pr.then) pr.then(started).catch(failed); else started();
+}
+function endClip() { if (!clipOn) return; clipOn = false; try { audio.pause(); } catch (e) {} if (ui.screen === "game" && game && game.cur) { if (!game.cur.res) game.cur.status = "played"; updateDeck(); } if (ui.screen === "scout") { ui.scoutKey = null; render(); } }
+audio.addEventListener("ended", endClip);
+audio.addEventListener("error", () => {
+  if (ui.screen === "game" && game && game.cur && game.cur.url && !game.cur.res && !game.cur.refetched) {
+    const c = game.cur; c.refetched = true; clipOn = false; delete store.clips[c.song.key];
+    resolveClip(c.song).then(url => { if (game && game.cur === c) { c.url = url; audio.src = url; audio.load(); c.status = c.plays ? "played" : "ready"; updateDeck(); } }).catch(() => { if (game && game.cur === c) { c.status = "error"; updateDeck(); } });
+  } else if (ui.screen === "game" && game && game.cur && !game.cur.res) { game.cur.status = "error"; clipOn = false; updateDeck(); }
+  else if (ui.screen === "scout" && ui.scoutKey) { clipOn = false; ui.scoutKey = null; render(); }
+});
+
+function viewGame() {
+  const c = game.cur;
+  const pips = game.songs.map((_, i) => { const r = game.results[i]; return `<i class="${r ? (r.pts === 10 ? "full" : r.pts === 5 ? "half" : "zero") : i === game.i ? "now" : ""}"></i>`; }).join("");
+  return `<div class="gamebar"><button class="btn plain" data-act="quit">Quit</button><div class="count">Song ${game.i + 1} of 10</div><div><b>${game.score}</b> pts</div></div>
+  <div class="pips" aria-hidden="true">${pips}</div>
+  <div class="deck">
+    <canvas id="wave" width="600" height="184" aria-hidden="true"></canvas>
+    <p class="status" id="status" aria-live="polite"></p>
+    <div class="row"><button class="btn primary grow" id="playbtn" data-act="play">Play clip</button>
+    <div class="listens" id="listens" aria-hidden="true"><i></i><i></i></div></div>
+  </div>
+  <div class="answer" id="answer">${c.res ? revealHtml() : answerHtml()}</div>`;
+}
+function answerHtml() {
+  const c = game.cur;
+  if (game.mode === "easy") return `
+    <div class="q" id="qa">Who's the artist?</div>
+    <div class="opts" role="group" aria-labelledby="qa">${c.opts.artists.map((a, i) => `<button class="opt" data-act="pickA" data-i="${i}" aria-pressed="${c.pickA === i}">${esc(a)}</button>`).join("")}</div>
+    <div class="q" id="qt">What's the song?</div>
+    <div class="opts" role="group" aria-labelledby="qt">${c.opts.titles.map((t, i) => `<button class="opt" data-act="pickT" data-i="${i}" aria-pressed="${c.pickT === i}">${esc(t)}</button>`).join("")}</div>
+    <div class="row" style="margin-top:16px"><button class="btn primary grow" id="lock" data-act="submit" disabled>Lock it in</button><button class="btn" data-act="giveup">No idea</button></div>`;
+  return `
+    <label class="q" for="inA" style="display:block">Artist</label><input type="text" id="inA" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="next">
+    <label class="q" for="inT" style="display:block">Song title</label><input type="text" id="inT" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+    <p class="small muted" style="margin:8px 0 0">Spelling doesn't count. Leave one blank if you only know half.</p>
+    <div class="row" style="margin-top:14px"><button class="btn primary grow" id="lock" data-act="submit" disabled>Lock it in</button><button class="btn" data-act="giveup">No idea</button></div>`;
+}
+function bindGameInputs() {
+  const a = $("#inA"), t = $("#inT"); if (!a) return;
+  a.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); t.focus(); } });
+  t.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); if (!$("#lock").disabled) submitAnswer(false); } });
+}
+function updateDeck() {
+  if (ui.screen !== "game" || !game) return; const c = game.cur, st = $("#status"), pb = $("#playbtn"), lock = $("#lock"); if (!st) return;
+  const left = 2 - c.plays, secs = game.clip;
+  const msg = { loading: "Cueing up the next song…", ready: `Two listens, ${secs} seconds each. Tap play when you're ready.`, blocked: "Your browser wants a tap first. Hit play.",
+    playing: `Playing. Listen ${c.plays} of 2.`, played: left ? "One listen left. Answer now or spend it." : "That's both listens. Lock in your answer.",
+    error: "This clip wouldn't load. Check your connection, or swap in a different song.", done: clipOn ? "Playing it back. Match the sound to the name." : "Now that you know it, give it one more listen." }[c.res ? "done" : c.status];
+  st.textContent = msg;
+  if (c.res) { pb.hidden = !c.url; pb.dataset.act = "again"; pb.disabled = clipOn; pb.textContent = clipOn ? "Playing…" : "Hear it again"; }
+  else if (c.status === "error") { pb.hidden = false; pb.disabled = false; pb.textContent = "Swap in a different song"; pb.dataset.act = "swap"; }
+  else { pb.hidden = false; pb.dataset.act = "play"; pb.disabled = c.status === "loading" || c.status === "playing" || left === 0; pb.textContent = c.status === "playing" ? "Playing…" : c.plays === 0 ? "Play clip" : left ? "Replay (1 left)" : "No listens left"; }
+  $("#listens").querySelectorAll("i").forEach((el, i) => el.classList.toggle("used", i < c.plays));
+  if (lock) lock.disabled = c.plays === 0 || (game.mode === "easy" && (c.pickA === null || c.pickT === null));
+}
+function submitAnswer(gaveUp) {
+  const c = game.cur, song = c.song; if (c.res) return;
+  let saidA = "", saidT = "", okA = false, okT = false;
+  if (!gaveUp) {
+    if (game.mode === "easy") { saidA = c.opts.artists[c.pickA] || ""; saidT = c.opts.titles[c.pickT] || ""; okA = saidA === song.artist; okT = saidT === song.t; }
+    else { saidA = ($("#inA").value || "").trim(); saidT = ($("#inT").value || "").trim(); okA = close(saidA, artistTargets(song)); okT = close(saidT, titleTargets(song.t)); }
+  }
+  stopAudio();
+  const pts = (okA ? 5 : 0) + (okT ? 5 : 0);
+  c.res = { okA, okT, saidA, saidT, pts, quip: quipFor(pts, song) };
+  game.results[game.i] = { song, okA, okT, pts, plays: c.plays }; game.score += pts;
+  // personal history, used to pick future songs
+  const p = me(), k = tierOf(song), h = p.hist[song.key] || { n: 0, ok: 0, miss: false };
+  p.tiers[k] = p.tiers[k] || [0, 0]; p.tiers[k][0] += pts; p.tiers[k][1] += 10;
+  h.n++;
+  if (pts === 10) { if (h.miss) p.count.fixed++; h.ok++; h.miss = false; if (k === "C") p.count.cur++; if (k === "OLD") p.count.old++; } else { h.ok = 0; h.miss = true; }
+  p.hist[song.key] = h; saveStore();
+  render(); const el = $("#answer"); if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+const ytLink = s => "https://www.youtube.com/results?search_query=" + encodeURIComponent(s.leads[0] + " " + s.t + " official audio");
+function revealHtml() {
+  const c = game.cur, s = c.song, r = c.res, last = game.i === 9;
+  const line = (ok, label, said) => `<div class="verdict"><span class="mark ${ok ? "ok" : "no"}" aria-hidden="true">${ok ? "✓" : "✕"}</span><span><b>${label}:</b> ${ok ? "correct" : said ? `you said “${esc(said)}”` : "no answer"}</span><span class="pts">${ok ? "+5" : "0"}</span></div>`;
+  return `<div class="card reveal">
+    <div class="song">${esc(s.t)}</div><div class="by">${esc(s.artist)}</div>
+    <p class="small muted">${s.cur ? `Number ${s.pos} on the Hot 100 right now` : s.y ? `Released ${s.y}` : ""}${s.host ? ". The host has played this one" : ""}</p>
+    ${line(r.okA, "Artist", r.saidA)}${line(r.okT, "Title", r.saidT)}
+    <p class="quip">${esc(r.quip)}</p>
+    <div class="row wrap"><button class="btn primary grow" data-act="next">${last ? "See your score" : "Next song"}</button>
+    <a class="btn" href="${ytLink(s)}" target="_blank" rel="noopener">Hear the intro on YouTube</a></div></div>`;
+}
+function nextSong() { if (game.i >= 9) return finishRound(); game.i++; loadSong(); window.scrollTo(0, 0); }
+
+function finishRound() {
+  const p = me(), hard = game.mode === "hard", score = game.score;
+  let xp = score * (hard ? 2 : 1); if (score === 100) xp += 20;
+  const today = dayKey(), yest = dayKey(new Date(Date.now() - 864e5));
+  if (p.lastDay !== today) { p.streak = p.lastDay === yest ? p.streak + 1 : 1; p.lastDay = today; }
+  const wk = weekKey(); if (p.weekKey !== wk) { p.weekKey = wk; p.weekXp = 0; }
+  const oldRank = rankOf(p.xp);
+  p.xp += xp; p.weekXp += xp; p.rounds++;
+  if (hard) p.bestHard = Math.max(p.bestHard, score); else p.bestEasy = Math.max(p.bestEasy, score);
+  const earn = [], give = id => { if (!p.badges.includes(id)) { p.badges.push(id); earn.push(id); } };
+  give("first"); if (hard && score >= 50) give("gains"); if (hard && score >= 80) give("swole"); if (score === 100) give("perfect");
+  if (p.count.cur >= 10) give("kids"); if (p.count.old >= 10) give("myday"); if (p.streak >= 3) give("earday");
+  if (score >= 70 && game.replays === 0) give("onetake"); if (p.count.fixed >= 10) give("remedial");
+  p.updated = Date.now(); saveStore();
+  game.done = { xp, earn, promoted: rankOf(p.xp) !== oldRank ? rankOf(p.xp) : null };
+  ui.screen = "results"; render(); window.scrollTo(0, 0); pushMe();
+}
+function viewResults() {
+  const d = game.done, p = me();
+  const verdict = game.score >= 90 ? "The host is going to think you cheated." : game.score >= 70 ? "That wins rounds. Do it again on trivia night." : game.score >= 40 ? "Real progress. The remedial reps are waiting." : game.score >= 20 ? "About where the team is now. It only goes up." : "Everyone starts somewhere. You started here.";
+  return `<div class="card" style="text-align:center"><div class="jersey">${game.score}<small>out of 100, ${game.mode} mode</small></div>
+    <p style="margin:12px 0 4px"><b>+${d.xp} XP</b>${game.mode === "hard" ? " (doubled for hard mode)" : ""}</p><p class="muted" style="margin:0">${verdict}</p>
+    ${d.promoted ? `<p style="margin:12px 0 0"><b>Promoted to ${esc(d.promoted)}.</b></p>` : ""}</div>
+  ${d.earn.length ? `<div class="card"><h2 style="margin-top:0">New merit ${d.earn.length > 1 ? "badges" : "badge"}</h2>${d.earn.map(id => { const b = BADGES.find(x => x[0] === id); return `<div class="badge"><div class="ico">${b[1]}</div><div><b>${esc(b[2])}</b><div class="small muted">${esc(b[3])}</div></div></div>`; }).join("")}</div>` : ""}
+  <div class="row" style="margin-top:18px"><button class="btn primary grow" data-act="start">Run it back</button><button class="btn" data-act="nav" data-to="board">Leaderboard</button></div>
+  <h2>The tape</h2><div class="card"><ul class="recap">${game.results.map(r => `<li><div><b>${esc(r.song.t)}</b><br>${esc(r.song.artist)}<br><span class="small muted">${r.okA ? "Artist ✓" : "Artist ✕"}, ${r.okT ? "title ✓" : "title ✕"}</span> <a href="${ytLink(r.song)}" target="_blank" rel="noopener">Listen on YouTube</a></div><div class="pts">${r.pts}</div></li>`).join("")}</ul></div>
+  <button class="btn wide" data-act="nav" data-to="home" style="margin-top:16px">Back to the locker room</button>`;
+}
+
+/* ---------- leaderboard ---------- */
+function viewBoard() {
+  const all = Object.assign({}, net.players); const p = me(); all[store.current] = Object.assign({}, all[store.current] || {}, p);
+  const tab = ui.lbTab, val = { week: weekXpOf, all: x => x.xp || 0, hard: x => x.bestHard || 0 }[tab], unit = { week: "XP this week", all: "XP", hard: "best hard" }[tab];
+  const rows = Object.keys(all).map(id => ({ id, p: all[id], v: val(all[id]) })).filter(r => r.p && r.p.name).sort((a, b) => b.v - a.v || (b.p.xp || 0) - (a.p.xp || 0));
+  const shame = {}; Object.values(net.players).forEach(pl => (pl.missed || []).forEach(k => { shame[k] = (shame[k] || 0) + 1; }));
+  const wall = Object.keys(shame).filter(k => BY_KEY[k] && shame[k] >= 2).sort((a, b) => shame[b] - shame[a]).slice(0, 8);
+  return `<h1 style="margin-bottom:12px">The roster</h1>
+  <div class="seg" role="group" aria-label="Ranking">${[["week", "This week"], ["all", "All time"], ["hard", "Best hard round"]].map(([k, l]) => `<button data-act="lbtab" data-v="${k}" aria-pressed="${tab === k}">${l}</button>`).join("")}</div>
+  <div class="card" style="margin-top:14px"><ol class="roster">${rows.map((r, i) => `<li class="${r.id === store.current ? "me" : ""}"><span class="pos">${i + 1}</span><span class="patch sm">${(AVATARS[r.p.avatar] || AVATARS[0])[0]}</span><span><span class="nm">${esc(r.p.name)}</span><span class="rk">${esc(rankOf(r.p.xp || 0))}, ${r.p.rounds || 0} workout${r.p.rounds === 1 ? "" : "s"}</span></span><span class="val">${r.v}<small>${unit}</small></span></li>`).join("")}</ol></div>
+  ${net.status === "off" ? `<p class="note" style="margin-top:14px">The shared leaderboard isn't connected yet, so this only shows scores from this phone. Colin: paste the database address into the coach settings at the top of the page's code.</p>` : ""}
+  ${net.status === "error" ? `<p class="note" style="margin-top:14px" role="alert">Couldn't reach the shared leaderboard, so this may be out of date. Your scores are saved on this phone and will sync after your next workout.</p>` : ""}
+  ${net.status === "loading" ? `<p class="muted" style="margin-top:14px">Loading the rest of the roster…</p>` : ""}
+  ${wall.length ? `<h2>The team's blind spots</h2><div class="card"><ul class="recap">${wall.map(k => `<li><div><b>${esc(BY_KEY[k].t)}</b><br>${esc(BY_KEY[k].artist)} <a href="${ytLink(BY_KEY[k])}" target="_blank" rel="noopener">Listen</a></div><div class="pts small">${shame[k]} dads</div></li>`).join("")}</ul></div>` : ""}`;
+}
+
+/* ---------- scouting report ---------- */
+function viewScout() {
+  const list = TIERS.C.slice().sort((a, b) => a.pos - b.pos);
+  return `<h1 style="margin-bottom:6px">Scouting report</h1>
+  <p>What the youths are listening to: the Billboard Hot 100 for the week of ${esc(CHART_DATE)}. Tap play for a ${store.settings.clip}-second clip. No points, no judgment.</p>
+  <div class="card"><ul class="scout">${list.map(s => `<li><span class="pos">${s.pos}</span><span><b>${esc(s.t)}</b><span>${esc(s.artist)}</span></span><button class="pl" data-act="scout" data-k="${s.key}" aria-pressed="${ui.scoutKey === s.key}" aria-label="${ui.scoutKey === s.key ? "Stop" : "Play"} ${esc(s.t)}">${ui.scoutKey === s.key ? "■" : "▶"}</button></li>`).join("")}</ul></div>
+  <p class="small muted" style="margin-top:12px">Halloween and Christmas re-entries are left off. They live in the older eras.</p>`;
+}
+function scoutPlay(key) {
+  if (ui.scoutKey === key) { stopAudio(); ui.scoutKey = null; render(); return; }
+  stopAudio(); ui.scoutKey = key; render();
+  resolveClip(BY_KEY[key]).then(url => {
+    if (ui.screen !== "scout" || ui.scoutKey !== key) return;
+    audio.src = url; clipLimit = store.settings.clip;
+    const pr = audio.play(); const ok = () => { clipOn = true; };
+    if (pr && pr.then) pr.then(ok).catch(() => { ui.scoutKey = null; render(); }); else ok();
+  }).catch(() => { if (ui.scoutKey === key) { ui.scoutKey = null; render(); } });
+}
+
+/* ---------- waveform + clip timer ---------- */
+function tick() {
+  if (clipOn && audio.currentTime >= clipLimit) endClip();
+  const cv = $("#wave");
+  if (cv && game && game.cur) {
+    const ctx = cv.getContext("2d"), W = cv.width, H = cv.height, c = game.cur, n = BARS, gap = 3, bw = (W - gap * (n - 1)) / n;
+    const prog = clipOn ? Math.min(1, audio.currentTime / game.clip) : (c.plays && !c.res ? 1 : 0);
+    const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    ctx.clearRect(0, 0, W, H);
+    for (let i = 0; i < n; i++) {
+      const at = i / n; let v = c.status === "loading" ? 0.06 : c.peaks[i];
+      if (clipOn && !still) { const d = Math.abs(at - prog); if (d < 0.06) v = Math.min(1, v * (1 + 0.35 * Math.sin(performance.now() / 70 + i))); }
+      const h = Math.max(4, v * (H - 8)), x = i * (bw + gap), y = (H - h) / 2;
+      ctx.fillStyle = clipOn ? (at <= prog ? "#ff6f59" : "rgba(255,250,240,.28)") : (c.plays ? "rgba(255,111,89,.6)" : "rgba(255,250,240,.28)");
+      ctx.fillRect(x, y, bw, h);
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ---------- actions ---------- */
+const actions = {
+  avatar(el) { ui.avatar = +el.dataset.i; document.querySelectorAll(".avatars button").forEach(b => b.setAttribute("aria-pressed", b === el)); },
+  async join() {
+    const name = ($("#name").value || "").trim().replace(/\s+/g, " "), err = $("#joinerr");
+    if (name.length < 2) { err.textContent = "Type a name first, at least two letters."; $("#name").focus(); return; }
+    const id = slug(name);
+    if (store.profiles[id]) { store.current = id; store.profiles[id].avatar = ui.avatar; saveStore(); pushMe(); return go("home"); }
+    if (DB && net.status === "loading") { err.style.color = "var(--ink-soft)"; err.textContent = "Checking the roster…"; await fetchPlayers(); }
+    if (net.players[id]) { ui.clash = { id, name: net.players[id].name }; return render(); }
+    store.profiles[id] = newProfile(name, ui.avatar); store.current = id; saveStore(); pushMe(); go("home");
+  },
+  claim() { adoptRemote(ui.clash.id, net.players[ui.clash.id]); store.current = ui.clash.id; ui.clash = null; saveStore(); go("home"); },
+  unclash() { ui.clash = null; render(); },
+  resume(el) { if (store.profiles[el.dataset.id]) { store.current = el.dataset.id; saveStore(); go("home"); } },
+  switch() { store.current = null; saveStore(); ui.clash = null; go("welcome"); },
+  nav(el) { go(el.dataset.to); },
+  plan(el) { store.settings.plan = el.dataset.id; saveStore(); render(); },
+  mode(el) { store.settings.mode = el.dataset.v; saveStore(); render(); },
+  clip(el) { store.settings.clip = +el.dataset.v; saveStore(); render(); },
+  start() { startRound(); },
+  play() { playClip(false); },
+  again() { playClip(false, true); },
+  swap() { swapSong(false); },
+  pickA(el) { game.cur.pickA = +el.dataset.i; el.parentNode.querySelectorAll(".opt").forEach(b => b.setAttribute("aria-pressed", b === el)); updateDeck(); },
+  pickT(el) { game.cur.pickT = +el.dataset.i; el.parentNode.querySelectorAll(".opt").forEach(b => b.setAttribute("aria-pressed", b === el)); updateDeck(); },
+  submit() { submitAnswer(false); },
+  giveup() { submitAnswer(true); },
+  next() { nextSong(); },
+  quit() { game = null; go("home"); },
+  lbtab(el) { ui.lbTab = el.dataset.v; render(); },
+  scout(el) { scoutPlay(el.dataset.k); }
+};
+document.addEventListener("click", e => { const el = e.target.closest("[data-act]"); if (el && !el.disabled && actions[el.dataset.act]) actions[el.dataset.act](el, e); });
+
+/* ---------- boot ---------- */
+loadStore();
+if (!store.profiles[store.current]) store.current = null;
+ui.screen = store.current ? "home" : "welcome";
+render(); requestAnimationFrame(tick);
+if (DB) fetchPlayers().then(() => {
+  const id = store.current, remote = id && net.players[id], p = me();
+  if (remote && p && (remote.updated || 0) > (p.updated || 0) && (remote.xp || 0) > p.xp) { const hist = p.hist; adoptRemote(id, remote); store.profiles[id].hist = Object.assign(store.profiles[id].hist, hist); saveStore(); }
+  if (ui.screen === "home" || ui.screen === "board") render();
+});
+</script>
+</body>
+</html>
