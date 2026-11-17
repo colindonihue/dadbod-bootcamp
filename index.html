@@ -110,6 +110,7 @@ label.lab, div.lab{display:block; font-weight:700; margin:14px 0 6px}
 .deck{background:var(--ink); color:var(--card); border-radius:12px; padding:14px; border:2px solid var(--ink); box-shadow:4px 4px 0 rgba(43,27,61,.35)}
 .deck canvas{display:block; width:100%; height:92px}
 .deck .status{min-height:2.9em; margin:8px 0 10px; font-size:.97rem}
+.deck #diag{opacity:.8; margin:-2px 0 12px}
 .deck .btn{border-color:var(--card); box-shadow:3px 3px 0 rgba(255,250,240,.35)}
 .deck .btn.primary{color:var(--ink)}
 .listens{display:flex; gap:6px; align-items:center; font-size:.88rem}
@@ -190,6 +191,7 @@ label.lab, div.lab{display:block; font-weight:700; margin:14px 0 6px}
 // 1. Shared leaderboard. Paste your Firebase Realtime Database URL between
 //    the quotes, e.g. "https://dadbod-bootcamp-default-rtdb.firebaseio.com"
 //    Leave it empty and scores stay on each person's own phone.
+//    The same database also holds the team's saved clip links (see "finding a clip" below).
 const TEAM_DB_URL = "https://dadbod-bootcamp-default-rtdb.firebaseio.com/";
 
 // 2. Songs the trivia host actually played. Add one block per trivia night:
@@ -606,16 +608,48 @@ async function fetchPlayers() {
     net.players = (await r.json()) || {}; net.status = "ok";
   } catch (e) { net.status = "error"; }
 }
-async function pushMe() {
-  const p = me(); if (!DB || !p) return;
-  const doc = { name: p.name, avatar: p.avatar, xp: p.xp, rounds: p.rounds, bestHard: p.bestHard, bestEasy: p.bestEasy, weekKey: p.weekKey, weekXp: p.weekXp, streak: p.streak, lastDay: p.lastDay, badges: p.badges, tiers: p.tiers, count: p.count, missed: Object.keys(p.hist).filter(k => p.hist[k].miss).slice(0, 60), updated: Date.now() };
-  try { const r = await fetch(DB + "/dadbods/players/" + store.current + ".json", { method: "PUT", body: JSON.stringify(doc) }); if (r.ok) { net.players[store.current] = doc; net.status = "ok"; } else net.status = "error"; } catch (e) { net.status = "error"; }
+// What this device and the database last agreed on. Anything earned since is "new here".
+function snapshot(p) { return { xp: p.xp, rounds: p.rounds, weekKey: p.weekKey, weekXp: p.weekXp, count: Object.assign({}, p.count), tiers: JSON.parse(JSON.stringify(p.tiers || {})) }; }
+// Fold the database's copy of a player into this device's copy without losing either one's progress.
+function mergeRemote(p, r) {
+  const s = p.synced || null, wk = weekKey(), week = x => (x && x.weekKey === wk ? (x.weekXp || 0) : 0);
+  // With a snapshot: theirs plus whatever was earned here since. Without one: keep the larger.
+  const add = (mine, base, theirs) => s ? Math.max(theirs || 0, base || 0) + Math.max(0, (mine || 0) - (base || 0)) : Math.max(mine || 0, theirs || 0);
+  p.xp = add(p.xp, s && s.xp, r.xp); p.rounds = add(p.rounds, s && s.rounds, r.rounds);
+  p.weekXp = add(week(p), week(s), week(r)); p.weekKey = wk;
+  p.bestHard = Math.max(p.bestHard || 0, r.bestHard || 0); p.bestEasy = Math.max(p.bestEasy || 0, r.bestEasy || 0);
+  if ((r.lastDay || "") > (p.lastDay || "")) { p.lastDay = r.lastDay; p.streak = r.streak || 0; } else if (r.lastDay === p.lastDay) p.streak = Math.max(p.streak || 0, r.streak || 0);
+  p.badges = Array.from(new Set([...(p.badges || []), ...(r.badges || [])]));
+  p.count = p.count || {}; ["cur", "old", "fixed"].forEach(k => { p.count[k] = add(p.count[k], s && s.count && s.count[k], r.count && r.count[k]); });
+  const tiers = {}, mineT = p.tiers || {}, theirT = r.tiers || {}, baseT = (s && s.tiers) || {};
+  new Set([...Object.keys(mineT), ...Object.keys(theirT)]).forEach(k => {
+    const a = mineT[k] || [0, 0], b = theirT[k] || [0, 0], c = baseT[k] || [0, 0];
+    tiers[k] = s ? [Math.max(b[0], c[0]) + Math.max(0, a[0] - c[0]), Math.max(b[1], c[1]) + Math.max(0, a[1] - c[1])] : (a[1] >= b[1] ? a : b);
+  });
+  p.tiers = tiers;
+  (r.missed || []).forEach(k => { if (!p.hist[k]) p.hist[k] = { n: 1, ok: 0, miss: true }; });
+}
+// Read the database's copy first, merge, then write. Never writes if the read failed, so a bad connection can't wipe a score.
+let syncChain = Promise.resolve();
+function syncMe() { if (!DB || !me()) return Promise.resolve(); syncChain = syncChain.then(doSync, doSync); return syncChain; }
+async function doSync() {
+  const id = store.current, p = me(); if (!p) return;
+  const url = DB + "/dadbods/players/" + id + ".json";
+  try {
+    const r = await fetch(url, { cache: "no-store" }); if (!r.ok) throw new Error("read " + r.status);
+    const remote = await r.json();
+    if (remote && remote.name) mergeRemote(p, remote);
+    const snap = snapshot(p);
+    const doc = { name: p.name, avatar: p.avatar, xp: p.xp, rounds: p.rounds, bestHard: p.bestHard, bestEasy: p.bestEasy, weekKey: p.weekKey, weekXp: p.weekXp, streak: p.streak, lastDay: p.lastDay, badges: p.badges, tiers: p.tiers, count: p.count, missed: Object.keys(p.hist).filter(k => p.hist[k].miss).slice(0, 60), updated: Date.now() };
+    const w = await fetch(url, { method: "PUT", body: JSON.stringify(doc) }); if (!w.ok) throw new Error("write " + w.status);
+    p.synced = snap; p.updated = doc.updated; saveStore(); net.players[id] = doc; net.status = "ok";
+  } catch (e) { net.status = "error"; saveStore(); }
 }
 function adoptRemote(id, doc) {
   const p = Object.assign(newProfile(doc.name, doc.avatar || 0), doc);
   p.badges = doc.badges || []; p.tiers = doc.tiers || {}; p.count = Object.assign({ cur: 0, old: 0, fixed: 0 }, doc.count || {});
   p.hist = {}; (doc.missed || []).forEach(k => { p.hist[k] = { n: 1, ok: 0, miss: true }; });
-  delete p.missed; store.profiles[id] = p;
+  delete p.missed; p.synced = snapshot(p); store.profiles[id] = p;
 }
 
 /* ---------- answer checking ---------- */
@@ -702,15 +736,24 @@ function buildOptions(song) {
   return { artists: shuffle(artists), titles: shuffle(titles) };
 }
 
-/* ---------- finding the clip (Apple's free 30-second previews) ---------- */
+/* ---------- finding a clip ----------
+   Apple's song search refuses iPhones: it answers them with a redirect into the Music app
+   instead of data. So every song can come from several places, tried in this order:
+     local  - a link this device already found
+     shared - the team's saved links in the database, stocked by computers and Android phones
+     apple  - Apple's search (computers, iPads, Android)
+     deezer - Deezer's search, which does answer iPhones
+   If a clip's audio then fails to play, the next source is tried for the same song. */
+const IS_IPHONE = /iPhone|iPod/.test(navigator.userAgent);
+const SILENCE = "data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA";
 let jsonpN = 0;
 function jsonp(url) {
   return new Promise((res, rej) => {
     const cb = "__dadbod" + (++jsonpN) + "_" + Date.now(), s = document.createElement("script");
     const done = () => { clearTimeout(timer); try { delete window[cb]; } catch (e) { window[cb] = undefined; } s.remove(); };
-    const timer = setTimeout(() => { done(); rej(new Error("timeout")); }, 9000);
+    const timer = setTimeout(() => { done(); rej(new Error("timed out")); }, 9000);
     window[cb] = d => { done(); res(d); };
-    s.onerror = () => { done(); rej(new Error("network")); };
+    s.onerror = () => { done(); rej(new Error("refused")); };
     s.src = url + "&callback=" + cb; document.head.appendChild(s);
   });
 }
@@ -733,17 +776,67 @@ function chooseTrack(results, song) {
   });
   return best;
 }
-const pending = {};
-function resolveClip(song) {
-  if (store.clips[song.key]) return Promise.resolve(store.clips[song.key]);
-  if (pending[song.key]) return pending[song.key];
-  const base = "https://itunes.apple.com/search?country=US&media=music&entity=song&limit=15&term=";
-  const bare = song.t.replace(/\s*\([^)]*\)\s*/g, " ").trim() || song.t;
-  const p = jsonp(base + encodeURIComponent(song.leads[0] + " " + bare))
+const bareTitle = song => song.t.replace(/\s*\([^)]*\)\s*/g, " ").trim() || song.t;
+function appleSearch(song) {
+  const base = "https://itunes.apple.com/search?country=US&media=music&entity=song&limit=15&term=", bare = bareTitle(song);
+  return jsonp(base + encodeURIComponent(song.leads[0] + " " + bare))
     .then(d => chooseTrack(d.results, song) || jsonp(base + encodeURIComponent(bare) + "&attribute=songTerm").then(d2 => chooseTrack(d2.results, song)))
-    .then(r => { delete pending[song.key]; if (!r) throw new Error("no match"); store.clips[song.key] = r.previewUrl; saveStore(); return r.previewUrl; })
-    .catch(e => { delete pending[song.key]; throw e; });
-  pending[song.key] = p; return p;
+    .then(r => { if (!r) throw new Error("no match"); return r.previewUrl; });
+}
+function deezerSearch(song) {
+  const base = "https://api.deezer.com/search?output=jsonp&limit=15&q=", bare = bareTitle(song), q = x => String(x).replace(/"/g, "");
+  const choose = d => {
+    if (!d || d.error) throw new Error(d && d.error && /quota/i.test(d.error.message || "") ? "busy" : "refused");
+    return chooseTrack((d.data || []).map(t => ({ kind: "song", trackName: t.title, artistName: t.artist && t.artist.name, collectionName: t.album && t.album.title, previewUrl: t.preview })), song);
+  };
+  return jsonp(base + encodeURIComponent('artist:"' + q(song.leads[0]) + '" track:"' + q(bare) + '"'))
+    .then(d => choose(d) || jsonp(base + encodeURIComponent(song.leads[0] + " " + bare)).then(choose))
+    .then(r => { if (!r) throw new Error("no match"); return r.previewUrl; });
+}
+// The team's saved clip links.
+let shared = null, sharedReady = null;
+function loadShared() {
+  if (!DB) return Promise.resolve();
+  if (!sharedReady) {
+    const got = fetch(DB + "/dadbods/clips.json").then(r => (r.ok ? r.json() : Promise.reject(new Error("status " + r.status)))).then(d => { shared = Object.assign(d || {}, shared || {}); }).catch(() => { sharedReady = null; });
+    sharedReady = Promise.race([got, new Promise(r => setTimeout(r, 6000))]);
+  }
+  return sharedReady;
+}
+function shareClip(key, url) {
+  if (!DB) return;
+  const entry = { u: url, t: Date.now() }; shared = shared || {}; shared[key] = entry;
+  fetch(DB + "/dadbods/clips/" + key + ".json", { method: "PUT", body: JSON.stringify(entry) }).catch(() => {});
+}
+let appleFails = 0;            // Apple failures in a row during this visit
+const memClips = {};           // Deezer links expire, so they are only kept for a few minutes
+const SOURCES = {
+  local: song => (store.clips[song.key] ? Promise.resolve(store.clips[song.key]) : Promise.reject(new Error("none"))),
+  shared: song => loadShared().then(() => { const e = shared && shared[song.key]; if (e && e.u) return e.u; throw new Error(!DB ? "off" : shared ? "none" : "unreachable"); }),
+  apple: song => appleSearch(song).then(url => { appleFails = 0; shareClip(song.key, url); return url; }, e => { if (e.message !== "no match") appleFails++; throw e; }),
+  deezer: song => { const m = memClips[song.key]; if (m && Date.now() - m.t < 6e5) return Promise.resolve(m.u); return deezerSearch(song).then(url => { memClips[song.key] = { u: url, t: Date.now() }; return url; }); }
+};
+// iPhones never call Apple's search at all. Elsewhere, Apple drops to last place after three failures in a row.
+const sourceOrder = () => (IS_IPHONE ? ["local", "shared", "deezer"] : appleFails < 3 ? ["local", "shared", "apple", "deezer"] : ["local", "shared", "deezer", "apple"]);
+const pending = {};
+// Resolves to { url, src }. `skip` lists sources already tried for this song whose audio failed.
+function resolveClip(song, skip) {
+  skip = skip || []; const id = song.key + "|" + skip.join(",");
+  if (pending[id]) return pending[id];
+  const run = async () => {
+    const log = [];
+    for (const name of sourceOrder()) {
+      if (skip.includes(name)) continue;
+      try {
+        const url = await SOURCES[name](song);
+        if (name === "apple" || name === "shared") { store.clips[song.key] = url; saveStore(); }
+        return { url, src: name };
+      } catch (e) { log.push(name + " " + e.message); }
+    }
+    const err = new Error("no clip"); err.log = log; throw err;
+  };
+  const p = run().then(r => { delete pending[id]; return r; }, e => { delete pending[id]; throw e; });
+  pending[id] = p; return p;
 }
 function fakePeaks(seed) {
   let x = 0; for (const ch of seed) x = (x * 31 + ch.charCodeAt(0)) >>> 0;
@@ -769,7 +862,7 @@ let ui = { screen: "welcome", avatar: 0, clash: null, lbTab: "week", scoutKey: n
 let game = null, clipOn = false, clipLimit = 20;
 
 function stopAudio() { clipOn = false; try { audio.pause(); } catch (e) {} }
-function go(screen) { ui.screen = screen; stopAudio(); ui.scoutKey = null; render(); window.scrollTo(0, 0); if (screen === "board" && DB) fetchPlayers().then(() => { if (ui.screen === "board") render(); }); }
+function go(screen) { ui.screen = screen; stopAudio(); ui.scoutKey = null; render(); window.scrollTo(0, 0); if (screen === "board" && DB) Promise.all([fetchPlayers(), loadShared()]).then(() => { if (ui.screen === "board") render(); }); }
 
 function render() {
   const showTabs = ["home", "board", "scout"].includes(ui.screen);
@@ -825,7 +918,7 @@ function viewWelcome() {
   <div class="card">
     <h2 style="margin-top:0">How a workout runs</h2>
     <ol class="rules"><li>Ten songs, 20 seconds each.</li><li>You get one replay per song, same as trivia night.</li><li>5 points for the artist, 5 for the title. Spelling doesn't count.</li></ol>
-    <p class="small muted" style="margin:10px 0 0">Clips are Apple's free song previews, which usually start partway into the song. After each answer there's a YouTube link so you can hear the real intro.</p>
+    <p class="small muted" style="margin:10px 0 0">Clips are free 30-second previews from Apple and Deezer, which usually start partway into the song. After each answer there's a YouTube link so you can hear the real intro.</p>
   </div>`;
 }
 
@@ -863,18 +956,19 @@ function startRound() {
   game = { plan: s.plan, mode: s.mode, clip: s.clip, songs: r.list, used: r.used, i: 0, results: [], score: 0, replays: 0, cur: null };
   ui.screen = "game"; loadSong(); window.scrollTo(0, 0);
 }
+function useClip(c, r) { c.url = r.url; c.src = r.src; audio.src = r.url; audio.load(); }
 function loadSong(isRetry) {
   const song = game.songs[game.i], token = Math.random();
-  game.cur = { song, token, status: "loading", plays: 0, peaks: fakePeaks(song.key), opts: game.mode === "easy" ? buildOptions(song) : null, pickA: null, pickT: null, res: null, tries: (isRetry && game.cur ? game.cur.tries : 0) };
+  game.cur = { song, token, status: "loading", plays: 0, skip: [], peaks: fakePeaks(song.key), opts: game.mode === "easy" ? buildOptions(song) : null, pickA: null, pickT: null, res: null, tries: (isRetry && game.cur ? game.cur.tries : 0) };
   stopAudio(); render();
-  resolveClip(song).then(url => {
+  resolveClip(song).then(r => {
     if (!game || game.cur.token !== token) return;
-    game.cur.url = url; audio.src = url; audio.load(); game.cur.status = "ready"; updateDeck();
+    const c = game.cur; useClip(c, r); c.status = "ready"; updateDeck();
     const conn = navigator.connection || {};
-    if (!conn.saveData && !/2g|3g/.test(conn.effectiveType || "")) realPeaks(url, game.clip).then(pk => { if (game && game.cur.token === token) game.cur.peaks = pk; }).catch(() => {});
+    if (!conn.saveData && !/2g|3g/.test(conn.effectiveType || "")) realPeaks(r.url, game.clip).then(pk => { if (game && game.cur.token === token) game.cur.peaks = pk; }).catch(() => {});
     if (game.i > 0) playClip(true);
     const nxt = game.songs[game.i + 1]; if (nxt) resolveClip(nxt).catch(() => {});
-  }).catch(() => { if (!game || game.cur.token !== token) return; swapSong(true); });
+  }).catch(e => { if (!game || game.cur.token !== token) return; game.diag = (e.log || [String(e.message)]).join(", "); swapSong(true); });
 }
 function swapSong(auto) {
   const c = game.cur;
@@ -896,13 +990,19 @@ function playClip(auto, free) {
 function endClip() { if (!clipOn) return; clipOn = false; try { audio.pause(); } catch (e) {} if (ui.screen === "game" && game && game.cur) { if (!game.cur.res) game.cur.status = "played"; updateDeck(); } if (ui.screen === "scout") { ui.scoutKey = null; render(); } }
 audio.addEventListener("ended", endClip);
 audio.addEventListener("error", () => {
-  if (ui.screen === "game" && game && game.cur && game.cur.url && !game.cur.res && !game.cur.refetched) {
-    const c = game.cur; c.refetched = true; clipOn = false; delete store.clips[c.song.key];
-    resolveClip(c.song).then(url => { if (game && game.cur === c) { c.url = url; audio.src = url; audio.load(); c.status = c.plays ? "played" : "ready"; updateDeck(); } }).catch(() => { if (game && game.cur === c) { c.status = "error"; updateDeck(); } });
-  } else if (ui.screen === "game" && game && game.cur && !game.cur.res) { game.cur.status = "error"; clipOn = false; updateDeck(); }
-  else if (ui.screen === "scout" && ui.scoutKey) { clipOn = false; ui.scoutKey = null; render(); }
+  if ((audio.currentSrc || audio.src || "").indexOf("data:") === 0) return;
+  clipOn = false;
+  if (ui.screen === "game" && game && game.cur && game.cur.url && !game.cur.res) {
+    // This source's audio won't play here. Drop it and try the next source for the same song.
+    const c = game.cur, key = c.song.key; c.starting = false; c.skip.push(c.src);
+    if (c.src === "local") { if (shared && shared[key] && shared[key].u === c.url) c.skip.push("shared"); delete store.clips[key]; saveStore(); }
+    if (c.src === "shared") { delete store.clips[key]; saveStore(); }
+    if (c.src === "deezer") delete memClips[key];
+    c.url = null; c.status = "loading"; updateDeck();
+    resolveClip(c.song, c.skip.slice()).then(r => { if (game && game.cur === c) { useClip(c, r); c.status = c.plays ? "played" : "ready"; updateDeck(); } })
+      .catch(e => { if (game && game.cur === c) { game.diag = "audio failed from " + c.skip.join(" and ") + ", then " + (e.log || []).join(", "); c.status = "error"; updateDeck(); } });
+  } else if (ui.screen === "scout" && ui.scoutKey) { ui.scoutKey = null; render(); }
 });
-
 function viewGame() {
   const c = game.cur;
   const pips = game.songs.map((_, i) => { const r = game.results[i]; return `<i class="${r ? (r.pts === 10 ? "full" : r.pts === 5 ? "half" : "zero") : i === game.i ? "now" : ""}"></i>`; }).join("");
@@ -911,6 +1011,7 @@ function viewGame() {
   <div class="deck">
     <canvas id="wave" width="600" height="184" aria-hidden="true"></canvas>
     <p class="status" id="status" aria-live="polite"></p>
+    <p class="small" id="diag" hidden></p>
     <div class="row"><button class="btn primary grow" id="playbtn" data-act="play">Play clip</button>
     <div class="listens" id="listens" aria-hidden="true"><i></i><i></i></div></div>
   </div>
@@ -942,6 +1043,8 @@ function updateDeck() {
     playing: `Playing. Listen ${c.plays} of 2.`, played: left ? "One listen left. Answer now or spend it." : "That's both listens. Lock in your answer.",
     error: "This clip wouldn't load. Check your connection, or swap in a different song.", done: clipOn ? "Playing it back. Match the sound to the name." : "Now that you know it, give it one more listen." }[c.res ? "done" : c.status];
   st.textContent = msg;
+  const dg = $("#diag"); dg.hidden = !!c.res || c.status !== "error";
+  dg.textContent = "What was tried: " + (game.diag || "nothing recorded") + (IS_IPHONE ? " (iPhone)" : "") + ". Send Colin a screenshot of this.";
   if (c.res) { pb.hidden = !c.url; pb.dataset.act = "again"; pb.disabled = clipOn; pb.textContent = clipOn ? "Playing…" : "Hear it again"; }
   else if (c.status === "error") { pb.hidden = false; pb.disabled = false; pb.textContent = "Swap in a different song"; pb.dataset.act = "swap"; }
   else { pb.hidden = false; pb.dataset.act = "play"; pb.disabled = c.status === "loading" || c.status === "playing" || left === 0; pb.textContent = c.status === "playing" ? "Playing…" : c.plays === 0 ? "Play clip" : left ? "Replay (1 left)" : "No listens left"; }
@@ -996,7 +1099,7 @@ function finishRound() {
   if (score >= 70 && game.replays === 0) give("onetake"); if (p.count.fixed >= 10) give("remedial");
   p.updated = Date.now(); saveStore();
   game.done = { xp, earn, promoted: rankOf(p.xp) !== oldRank ? rankOf(p.xp) : null };
-  ui.screen = "results"; render(); window.scrollTo(0, 0); pushMe();
+  ui.screen = "results"; render(); window.scrollTo(0, 0); syncMe();
 }
 function viewResults() {
   const d = game.done, p = me();
@@ -1023,6 +1126,7 @@ function viewBoard() {
   ${net.status === "off" ? `<p class="note" style="margin-top:14px">The shared leaderboard isn't connected yet, so this only shows scores from this phone. Colin: paste the database address into the coach settings at the top of the page's code.</p>` : ""}
   ${net.status === "error" ? `<p class="note" style="margin-top:14px" role="alert">Couldn't reach the shared leaderboard, so this may be out of date. Your scores are saved on this phone and will sync after your next workout.</p>` : ""}
   ${net.status === "loading" ? `<p class="muted" style="margin-top:14px">Loading the rest of the roster…</p>` : ""}
+  ${libraryHtml()}
   ${wall.length ? `<h2>The team's blind spots</h2><div class="card"><ul class="recap">${wall.map(k => `<li><div><b>${esc(BY_KEY[k].t)}</b><br>${esc(BY_KEY[k].artist)} <a href="${ytLink(BY_KEY[k])}" target="_blank" rel="noopener">Listen</a></div><div class="pts small">${shame[k]} dads</div></li>`).join("")}</ul></div>` : ""}`;
 }
 
@@ -1037,12 +1141,46 @@ function viewScout() {
 function scoutPlay(key) {
   if (ui.scoutKey === key) { stopAudio(); ui.scoutKey = null; render(); return; }
   stopAudio(); ui.scoutKey = key; render();
-  resolveClip(BY_KEY[key]).then(url => {
+  // iPhones only let audio start from inside a tap, and finding the clip takes a moment. Start a blip of silence now so the real clip may follow.
+  try { audio.src = SILENCE; const warm = audio.play(); if (warm && warm.catch) warm.catch(() => {}); } catch (e) {}
+  resolveClip(BY_KEY[key]).then(r => {
     if (ui.screen !== "scout" || ui.scoutKey !== key) return;
-    audio.src = url; clipLimit = store.settings.clip;
+    audio.src = r.url; clipLimit = store.settings.clip;
     const pr = audio.play(); const ok = () => { clipOn = true; };
     if (pr && pr.then) pr.then(ok).catch(() => { ui.scoutKey = null; render(); }); else ok();
   }).catch(() => { if (ui.scoutKey === key) { ui.scoutKey = null; render(); } });
+}
+
+/* ---------- clip library: save every song's link so iPhones never need Apple's search ---------- */
+let stock = { on: false, msg: "" }, stockDelay = 3200, stockPause = 60000;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const savedCount = () => (shared ? SONGS.filter(s => shared[s.key] && shared[s.key].u).length : 0);
+function libraryHtml() {
+  if (!DB) return "";
+  const n = savedCount(), left = SONGS.length - n;
+  return `<h2>Clip library</h2><div class="card"><p><b id="libcount">${n} of ${SONGS.length}</b> songs are saved for the team.</p>
+  <p class="small muted">Apple won't let iPhones look songs up, so iPhones play from this saved list, and from Deezer for anything not on it. Computers and Android phones add to the list as they play.</p>
+  ${IS_IPHONE ? "" : !left && !stock.on ? `<p class="small" style="margin:0"><b>Fully stocked.</b></p>` : `<button class="btn ${stock.on ? "" : "primary"}" data-act="stock">${stock.on ? "Stop saving" : `Save the other ${left} now`}</button>
+  <p class="small muted" id="stockmsg" style="margin:10px 0 0" aria-live="polite">${esc(stock.msg || `Takes about ${Math.max(1, Math.ceil(left * 3.6 / 60))} minutes. Keep this tab open and in front.`)}</p>`}</div>`;
+}
+function paintStock() { const a = $("#libcount"), b = $("#stockmsg"); if (a) a.textContent = savedCount() + " of " + SONGS.length; if (b) b.textContent = stock.msg; }
+async function runStock() {
+  stock.on = true; stock.msg = "Starting…"; if (ui.screen === "board") render();
+  await loadShared(); shared = shared || {};
+  let missing = 0, streak = 0;
+  for (const s of SONGS.filter(x => !(shared[x.key] && shared[x.key].u))) {
+    if (!stock.on) break;
+    try { await SOURCES.apple(s); streak = 0; }
+    catch (e) {
+      if (e.message === "no match") missing++;
+      else if (++streak >= 3) { stock.msg = "Apple asked us to slow down. Pausing for a minute, then carrying on."; paintStock(); await sleep(stockPause); streak = 0; }
+    }
+    stock.msg = "Saving. " + (SONGS.length - savedCount()) + " to go" + (missing ? ", " + missing + " not on Apple (those use Deezer)" : "") + "."; paintStock();
+    await sleep(stockDelay);
+  }
+  const left = SONGS.length - savedCount();
+  stock.on = false; stock.msg = left ? "Stopped with " + left + " to go. Tap the button again any time to pick up where this left off." : "";
+  if (ui.screen === "board") render();
 }
 
 /* ---------- waveform + clip timer ---------- */
@@ -1072,10 +1210,10 @@ const actions = {
     const name = ($("#name").value || "").trim().replace(/\s+/g, " "), err = $("#joinerr");
     if (name.length < 2) { err.textContent = "Type a name first, at least two letters."; $("#name").focus(); return; }
     const id = slug(name);
-    if (store.profiles[id]) { store.current = id; store.profiles[id].avatar = ui.avatar; saveStore(); pushMe(); return go("home"); }
+    if (store.profiles[id]) { store.current = id; store.profiles[id].avatar = ui.avatar; saveStore(); syncMe(); return go("home"); }
     if (DB && net.status === "loading") { err.style.color = "var(--ink-soft)"; err.textContent = "Checking the roster…"; await fetchPlayers(); }
     if (net.players[id]) { ui.clash = { id, name: net.players[id].name }; return render(); }
-    store.profiles[id] = newProfile(name, ui.avatar); store.current = id; saveStore(); pushMe(); go("home");
+    store.profiles[id] = newProfile(name, ui.avatar); store.current = id; saveStore(); syncMe(); go("home");
   },
   claim() { adoptRemote(ui.clash.id, net.players[ui.clash.id]); store.current = ui.clash.id; ui.clash = null; saveStore(); go("home"); },
   unclash() { ui.clash = null; render(); },
@@ -1096,7 +1234,8 @@ const actions = {
   next() { nextSong(); },
   quit() { game = null; go("home"); },
   lbtab(el) { ui.lbTab = el.dataset.v; render(); },
-  scout(el) { scoutPlay(el.dataset.k); }
+  scout(el) { scoutPlay(el.dataset.k); },
+  stock() { if (stock.on) { stock.on = false; stock.msg = "Stopping…"; paintStock(); } else runStock(); }
 };
 document.addEventListener("click", e => { const el = e.target.closest("[data-act]"); if (el && !el.disabled && actions[el.dataset.act]) actions[el.dataset.act](el, e); });
 
@@ -1105,11 +1244,12 @@ loadStore();
 if (!store.profiles[store.current]) store.current = null;
 ui.screen = store.current ? "home" : "welcome";
 render(); requestAnimationFrame(tick);
-if (DB) fetchPlayers().then(() => {
-  const id = store.current, remote = id && net.players[id], p = me();
-  if (remote && p && (remote.updated || 0) > (p.updated || 0) && (remote.xp || 0) > p.xp) { const hist = p.hist; adoptRemote(id, remote); store.profiles[id].hist = Object.assign(store.profiles[id].hist, hist); saveStore(); }
-  if (ui.screen === "home" || ui.screen === "board") render();
-});
+if (DB) {
+  loadShared();
+  const repaint = () => { if (ui.screen === "home" || ui.screen === "board") render(); };
+  // Scores earned before the leaderboard was connected live only on this device. Send them up, merged with anything already there.
+  fetchPlayers().then(repaint); syncMe().then(repaint);
+}
 </script>
 </body>
 </html>
